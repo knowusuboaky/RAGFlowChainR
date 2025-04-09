@@ -85,12 +85,16 @@ head(data)
 con <- create_vectorstore("my_vectors.duckdb", overwrite = TRUE)
 
 docs <- data.frame(
-  page_content = c(
-    "Lionel Messi is a football legend.",
-    "Paris is the capital of France."
-  ),
-  stringsAsFactors = FALSE
-)
+        source        = "Test Source",
+        title         = "Test Title",
+        author        = "Test Author",
+        publishedDate = "2025-01-01",
+        description   = "Test Description",
+        content       = "Hello world",
+        url           = "https://example.com",
+        source_type   = "txt",
+        stringsAsFactors = FALSE
+    )
 
 insert_vectors(
   con = con,
