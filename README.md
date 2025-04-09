@@ -4,7 +4,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![CRAN status](https://www.r-pkg.org/badges/version/RAGFlowChainR)](https://cran.r-project.org/package=RAGFlowChainR)
 [![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/RAGFlowChainR?color=orange)](https://cranlogs.r-pkg.org/badges/grand-total/RAGFlowChainR)
-[![R-CMD-check](https://github.com/knowusuboaky/RAGFlowChainR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/knowusuboaky/RAGFlowChainR/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/knowusuboaky/RAGFlowChainR/branch/main/graph/badge.svg)](https://app.codecov.io/gh/knowusuboaky/RAGFlowChainR?branch=main)
 [![Last Commit](https://img.shields.io/github/last-commit/knowusuboaky/RAGFlowChainR.svg)](https://github.com/knowusuboaky/RAGFlowChainR/commits/main)
 [![Issues](https://img.shields.io/github/issues/knowusuboaky/RAGFlowChainR.svg)](https://github.com/knowusuboaky/RAGFlowChainR/issues)
