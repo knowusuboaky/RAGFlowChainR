@@ -21,6 +21,7 @@
 NULL
 
 # Required libraries
+library(DBI)
 library(duckdb)
 library(httr)
 library(jsonlite)
