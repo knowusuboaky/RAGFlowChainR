@@ -1,18 +1,3 @@
----
-output:
-  bookdown::github_document2:
-    html_preview: false
----
-
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
-)
-```
-
 # RAGFlowChainR
 
 <!-- badges: start -->
