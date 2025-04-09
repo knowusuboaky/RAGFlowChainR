@@ -16,7 +16,6 @@ NULL
 
 # Required libraries
 library(dplyr)
-library(DBI)
 library(duckdb)
 library(httr)
 library(jsonlite)
