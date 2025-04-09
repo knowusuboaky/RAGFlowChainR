@@ -15,6 +15,7 @@
 NULL
 
 # Required libraries
+library(DBI)
 library(dplyr)
 library(duckdb)
 library(httr)
