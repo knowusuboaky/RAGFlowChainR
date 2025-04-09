@@ -1,8 +1,11 @@
 # tests/testthat/test_create_vectorstore.R
 
-library(testthat)
 library(DBI)
+library(dplyr)
 library(duckdb)
+library(httr)
+library(jsonlite)
+library(stringi)
 
 ###############################################################################
 # 1) MOCK EMBEDDING FUNCTION
@@ -65,7 +68,7 @@ test_that("create_vectorstore creates an in-memory DuckDB and table structure", 
     expect_true("vectors" %in% tbls)
 
     # Cleanup
-    dbDisconnect(con, shutdown = TRUE)
+    DBI::dbDisconnect(con, shutdown = TRUE)
 })
 
 test_that("create_vectorstore overwrites existing data when requested", {
@@ -93,7 +96,7 @@ test_that("create_vectorstore overwrites existing data when requested", {
     )
 
     insert_vectors(con1, df, embed_fun = mock_embed, embedding_dim = 1536)
-    dbDisconnect(con1, shutdown = TRUE)
+    DBI::dbDisconnect(con1, shutdown = TRUE)
 
     # 2) Re-create with overwrite=TRUE
     con2 <- create_vectorstore(
@@ -103,11 +106,11 @@ test_that("create_vectorstore overwrites existing data when requested", {
     )
 
     # Vectors table should be empty again
-    res <- dbGetQuery(con2, "SELECT COUNT(*) AS n FROM vectors")
+    res <- DBI::dbGetQuery(con2, "SELECT COUNT(*) AS n FROM vectors")
     expect_equal(res$n, 0)
 
     # Cleanup
-    dbDisconnect(con2, shutdown = TRUE)
+    DBI::dbDisconnect(con2, shutdown = TRUE)
     unlink(tmpdb)
     unlink(paste0(tmpdb, ".wal"), force = TRUE)
 })
@@ -138,23 +141,23 @@ test_that("insert_vectors handles chunking and uses required columns", {
     )
 
     # Confirm data was inserted
-    res <- dbGetQuery(con, "SELECT COUNT(*) AS n FROM vectors")
+    res <- DBI::dbGetQuery(con, "SELECT COUNT(*) AS n FROM vectors")
     # With chunk_chars=100 and 3000 "long text" => definitely multiple chunks
     expect_gt(res$n, 1)
 
-    dbDisconnect(con, shutdown = TRUE)
+    DBI::dbDisconnect(con, shutdown = TRUE)
 })
 
 test_that("build_vector_index creates HNSW index and optional FTS (skip if FTS unavailable)", {
     # First, check if FTS extension can be installed/loaded in this DuckDB build
     can_load_fts <- TRUE
-    con_check <- dbConnect(duckdb::duckdb(), ":memory:")
+    con_check <- DBI::dbConnect(duckdb::duckdb(), ":memory:")
     tryCatch({
-        dbExecute(con_check, "INSTALL fts; LOAD fts;")
+        DBI::dbExecute(con_check, "INSTALL fts; LOAD fts;")
     }, error = function(e) {
         can_load_fts <<- FALSE
     })
-    dbDisconnect(con_check, shutdown = TRUE)
+    DBI::dbDisconnect(con_check, shutdown = TRUE)
 
     if (!can_load_fts) {
         skip("Skipping FTS test because the extension is unavailable in this DuckDB build.")
@@ -193,7 +196,7 @@ test_that("build_vector_index creates HNSW index and optional FTS (skip if FTS u
     # There's no straightforward direct check for HNSW index existence,
     # but at least no error was raised. Optionally, we can do a search.
 
-    dbDisconnect(con, shutdown = TRUE)
+    DBI::dbDisconnect(con, shutdown = TRUE)
 })
 
 ###############################################################################
@@ -231,7 +234,7 @@ test_that("we can skip embedding or pass in a dummy embedding function", {
     )
 
     # Confirm data inserted
-    res <- dbGetQuery(con, "SELECT COUNT(*) AS n FROM vectors")
+    res <- DBI::dbGetQuery(con, "SELECT COUNT(*) AS n FROM vectors")
     expect_equal(res$n, 2)
 
     # Optionally build the vector index (still works with zero vectors):
@@ -250,7 +253,7 @@ test_that("we can skip embedding or pass in a dummy embedding function", {
     expect_true(all(c("id", "page_content", "dist") %in% names(search_res)))
     expect_equal(nrow(search_res), 2)
 
-    dbDisconnect(con, shutdown = TRUE)
+    DBI::dbDisconnect(con, shutdown = TRUE)
 })
 
 ###############################################################################
@@ -299,5 +302,5 @@ test_that("search_vectors returns expected columns and row count", {
     # Should return up to 2 matches
     expect_lte(nrow(res), 2)
 
-    dbDisconnect(con, shutdown = TRUE)
+    DBI::dbDisconnect(con, shutdown = TRUE)
 })

@@ -102,15 +102,15 @@ create_vectorstore <- function(
         if (file.exists(wal)) unlink(wal)
     }
 
-    con <- dbConnect(duckdb::duckdb(), db_path, read_only = FALSE)
-    dbExecute(con, "INSTALL vss; LOAD vss;")
+    con <- DBI::dbConnect(duckdb::duckdb(), db_path, read_only = FALSE)
+    DBI::dbExecute(con, "INSTALL vss; LOAD vss;")
 
     if (overwrite) {
-        dbExecute(con, "DROP TABLE IF EXISTS vectors;")
-        dbExecute(con, "DROP SEQUENCE IF EXISTS vector_seq;")
+        DBI::dbExecute(con, "DROP TABLE IF EXISTS vectors;")
+        DBI::dbExecute(con, "DROP SEQUENCE IF EXISTS vector_seq;")
     }
 
-    dbExecute(con, "CREATE SEQUENCE IF NOT EXISTS vector_seq START 1;")
+    DBI::dbExecute(con, "CREATE SEQUENCE IF NOT EXISTS vector_seq START 1;")
     create_sql <- sprintf("
     CREATE TABLE IF NOT EXISTS vectors(
       id           INT   DEFAULT nextval('vector_seq'),
@@ -118,14 +118,14 @@ create_vectorstore <- function(
       embedding    FLOAT[%d]
     );
   ", embedding_dim)
-    dbExecute(con, create_sql)
+    DBI::dbExecute(con, create_sql)
 
     con
 }
 
 connect_vectorstore <- function(db_path = ":memory:", read_only = FALSE) {
-    con <- dbConnect(duckdb::duckdb(), db_path, read_only = read_only)
-    dbExecute(con, "INSTALL vss; LOAD vss;")
+    con <- DBI::dbConnect(duckdb::duckdb(), db_path, read_only = read_only)
+    DBI::dbExecute(con, "INSTALL vss; LOAD vss;")
     con
 }
 
@@ -209,7 +209,7 @@ insert_vectors <- function(
     n <- nrow(df_expanded)
     rows_sql <- character(n)
     for (i in seq_len(n)) {
-        content_esc <- dbQuoteString(con, df_expanded$page_content[i])
+        content_esc <- DBI::dbQuoteString(con, df_expanded$page_content[i])
         if (is.matrix(df_expanded$embedding)) {
             e_vec <- df_expanded$embedding[i, ]
         } else {
@@ -225,7 +225,7 @@ insert_vectors <- function(
     VALUES %s
   ", paste(rows_sql, collapse = ",\n"))
 
-    dbExecute(con, insert_sql)
+    DBI::dbExecute(con, insert_sql)
     invisible(NULL)
 }
 
@@ -238,9 +238,9 @@ build_vector_index <- function(store, type = c("vss", "fts")) {
     type <- match.arg(type, several.ok = TRUE)
 
     if ("vss" %in% type) {
-        dbExecute(con, "SET hnsw_enable_experimental_persistence = true;")
-        dbExecute(con, "DROP INDEX IF EXISTS idx_vectors_embedding;")
-        dbExecute(con, "
+        DBI::dbExecute(con, "SET hnsw_enable_experimental_persistence = true;")
+        DBI::dbExecute(con, "DROP INDEX IF EXISTS idx_vectors_embedding;")
+        DBI::dbExecute(con, "
       CREATE INDEX idx_vectors_embedding
       ON vectors
       USING HNSW(embedding);
@@ -248,8 +248,8 @@ build_vector_index <- function(store, type = c("vss", "fts")) {
     }
 
     if ("fts" %in% type) {
-        dbExecute(con, "INSTALL fts; LOAD fts;")
-        dbExecute(con, "
+        DBI::dbExecute(con, "INSTALL fts; LOAD fts;")
+        DBI::dbExecute(con, "
       PRAGMA create_fts_index(
         'vectors',
         'id',
@@ -278,13 +278,13 @@ search_vectors <- function(
     }
     storage.mode(q_emb) <- "double"
 
-    dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
+    DBI::dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
     create_tmp_sql <- sprintf("
     CREATE TEMP TABLE __temp_query__ (
       embedding FLOAT[%d]
     );
   ", embedding_dim)
-    dbExecute(con, create_tmp_sql)
+    DBI::dbExecute(con, create_tmp_sql)
 
     emb_str <- paste(q_emb[1, ], collapse = ",")
     arr_expr <- sprintf("array_value(%s)", emb_str)
@@ -292,7 +292,7 @@ search_vectors <- function(
     INSERT INTO __temp_query__(embedding)
     VALUES (%s)
   ", arr_expr)
-    dbExecute(con, insert_tmp_sql)
+    DBI::dbExecute(con, insert_tmp_sql)
 
     sql <- sprintf("
     SELECT v.id, v.page_content, v.embedding <=> (SELECT embedding FROM __temp_query__) AS dist
@@ -301,8 +301,8 @@ search_vectors <- function(
     LIMIT %d;
   ", top_k)
 
-    res <- dbGetQuery(con, sql)
-    dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
+    res <- DBI::dbGetQuery(con, sql)
+    DBI::dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
 
     res
 }

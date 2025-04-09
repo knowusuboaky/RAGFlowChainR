@@ -3,6 +3,11 @@
 library(testthat)
 library(DBI)
 library(duckdb)
+library(httr)
+library(jsonlite)
+library(stringi)
+library(dplyr)
+
 
 ###############################################################################
 # 1) MOCK EMBEDDING FUNCTION

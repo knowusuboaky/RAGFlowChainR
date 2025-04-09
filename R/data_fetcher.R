@@ -186,7 +186,7 @@ crawl_links_bfs <- function(start_url, depth = NULL) {
         if (cur_url %in% visited) next
         visited <- c(visited, cur_url)
 
-        doc <- tryCatch(read_html(cur_url), error = function(e) NULL)
+        doc <- tryCatch(xml2::read_html(cur_url), error = function(e) NULL)
         if (is.null(doc)) next
 
         anchors <- rvest::html_elements(doc, "a[href]")
@@ -221,7 +221,7 @@ crawl_links_bfs <- function(start_url, depth = NULL) {
 #  3) Read a single site
 # ------------------------------------------------------------------------------
 read_website_page <- function(url) {
-    doc <- tryCatch(read_html(url), error = function(e) NULL)
+    doc <- tryCatch(xml2::read_html(url), error = function(e) NULL)
     if (is.null(doc)) return(NULL)
     raw_text <- rvest::html_text2(doc)
     raw_text <- gsub("\n\n+", "\n", raw_text)
@@ -268,7 +268,7 @@ fetch_data <- function(local_paths = NULL, website_urls = NULL, crawl_depth = NU
         website_list <- lapply(all_links, read_website_page)
         website_list <- website_list[!sapply(website_list, is.null)]
         if (length(website_list)) {
-            df_web <- bind_rows(website_list)
+            df_web <- dplyr::bind_rows(website_list)
             all_dfs[[length(all_dfs) + 1]] <- df_web
         }
     }
@@ -281,7 +281,7 @@ fetch_data <- function(local_paths = NULL, website_urls = NULL, crawl_depth = NU
         ))
     }
 
-    final_df <- bind_rows(all_dfs)
+    final_df <- dplyr::bind_rows(all_dfs)
     col_order <- c("source", "title", "author", "publishedDate", "description", "content", "url", "source_type")
     final_df <- final_df[, col_order, drop = FALSE]
     final_df

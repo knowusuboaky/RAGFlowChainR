@@ -25,7 +25,7 @@ create_rag_chain(
 
 \item{embedding_function}{A function for embedding text. Defaults to `embed_openai()`.}
 
-\item{system_prompt}{Optional prompt string with placeholders `{chat_history}`, `{input}`, `{context}`.}
+\item{system_prompt}{Optional prompt with placeholders \code{{chat_history}}, \code{{input}}, \code{{context}}}
 
 \item{chat_history_prompt}{Prompt used to rephrase user questions based on prior context.}
 

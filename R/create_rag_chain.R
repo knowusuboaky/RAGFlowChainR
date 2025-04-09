@@ -85,8 +85,8 @@ embed_openai <- function(
 #  2) VECTOR DATABASE (DuckDB)
 # ==============================================================================
 connect_vectorstore <- function(db_path = ":memory:", read_only = FALSE) {
-    con <- dbConnect(duckdb::duckdb(), db_path, read_only = read_only)
-    dbExecute(con, "INSTALL vss; LOAD vss;")
+    con <- DBI::dbConnect(duckdb::duckdb(), db_path, read_only = read_only)
+    DBI::dbExecute(con, "INSTALL vss; LOAD vss;")
     con
 }
 
@@ -323,7 +323,7 @@ insert_vectors <- function(
     n <- nrow(df_expanded)
     rows_sql <- character(n)
     for (i in seq_len(n)) {
-        content_esc <- dbQuoteString(con, df_expanded$page_content[i])
+        content_esc <- DBI::dbQuoteString(con, df_expanded$page_content[i])
         if (is.matrix(df_expanded$embedding)) {
             e_vec <- df_expanded$embedding[i, ]
         } else {
@@ -339,7 +339,7 @@ insert_vectors <- function(
         VALUES %s
     ", paste(rows_sql, collapse = ",\n"))
 
-    dbExecute(con, insert_sql)
+    DBI::dbExecute(con, insert_sql)
     invisible(NULL)
 }
 
@@ -354,9 +354,9 @@ build_vector_index <- function(
     type <- match.arg(type, several.ok = TRUE)
 
     if ("vss" %in% type) {
-        dbExecute(con, "SET hnsw_enable_experimental_persistence = true;")
-        dbExecute(con, "DROP INDEX IF EXISTS idx_vectors_embedding;")
-        dbExecute(con, "
+        DBI::dbExecute(con, "SET hnsw_enable_experimental_persistence = true;")
+        DBI::dbExecute(con, "DROP INDEX IF EXISTS idx_vectors_embedding;")
+        DBI::dbExecute(con, "
             CREATE INDEX idx_vectors_embedding
             ON vectors
             USING HNSW(embedding);
@@ -364,8 +364,8 @@ build_vector_index <- function(
     }
 
     if ("fts" %in% type) {
-        dbExecute(con, "INSTALL fts; LOAD fts;")
-        dbExecute(con, "
+        DBI::dbExecute(con, "INSTALL fts; LOAD fts;")
+        DBI::dbExecute(con, "
             PRAGMA create_fts_index(
               'vectors',
               'id',
@@ -395,13 +395,13 @@ search_vectors <- function(
     storage.mode(q_emb) <- "double"
 
     # Create a temp table for the query vector
-    dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
+    DBI::dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
     create_tmp_sql <- sprintf("
         CREATE TEMP TABLE __temp_query__ (
           embedding FLOAT[%d]
         );
     ", embedding_dim)
-    dbExecute(con, create_tmp_sql)
+    DBI::dbExecute(con, create_tmp_sql)
 
     emb_str  <- paste(q_emb[1, ], collapse = ",")
     arr_expr <- sprintf("array_value(%s)", emb_str)
@@ -409,7 +409,7 @@ search_vectors <- function(
         INSERT INTO __temp_query__(embedding)
         VALUES (%s)
     ", arr_expr)
-    dbExecute(con, insert_tmp_sql)
+    DBI::dbExecute(con, insert_tmp_sql)
 
     # HNSW distance operator is <=> in DuckDB. Lower is more similar.
     sql <- sprintf("
@@ -419,8 +419,8 @@ search_vectors <- function(
         LIMIT %d;
     ", top_k)
 
-    res <- dbGetQuery(con, sql)
-    dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
+    res <- DBI::dbGetQuery(con, sql)
+    DBI::dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
     res
 }
 
@@ -437,7 +437,7 @@ search_vectors <- function(
 #' @param vector_database_directory Path to DuckDB database file.
 #' @param method Currently only "DuckDB" is supported.
 #' @param embedding_function A function for embedding text. Defaults to `embed_openai()`.
-#' @param system_prompt Optional prompt string with placeholders `{chat_history}`, `{input}`, `{context}`.
+#' @param system_prompt Optional prompt with placeholders \code{{chat_history}}, \code{{input}}, \code{{context}}
 #' @param chat_history_prompt Prompt used to rephrase user questions based on prior context.
 #' @param tavily_search API key for Tavily (or NULL to disable web search).
 #' @param embedding_dim Dimensionality of embedding vectors (default 1536).
@@ -604,7 +604,7 @@ create_rag_chain <- function(
         custom_invoke      = custom_invoke,
         get_session_history= function() message_history$get_messages(),
         clear_history      = function() message_history$clear_messages(),
-        disconnect         = function() dbDisconnect(con)
+        disconnect         = function() DBI::dbDisconnect(con)
     )
 }
 

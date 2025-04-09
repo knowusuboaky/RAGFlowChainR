@@ -1,5 +1,16 @@
 # tests/testthat/test_data_fetcher.R
 library(testthat)
+library(pdftools)
+library(officer)
+library(rvest)
+library(xml2)
+library(curl)
+library(dplyr)
+library(stringi)
+library(httr)
+library(jsonlite)
+library(magrittr)
+
 
 test_that("fetch_data returns an empty data frame if invalid path is provided", {
     # Attempt to fetch data from a path that doesn't exist

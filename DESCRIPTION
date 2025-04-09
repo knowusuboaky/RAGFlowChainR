@@ -25,12 +25,15 @@ Imports:
     DBI,
     duckdb,
     httr,
-    jsonlite,
-    stringi,
     dplyr,
     pdftools,
     officer,
     rvest,
     xml2,
     curl,
-    magrittr
+Suggests:
+    testthat,
+    jsonlite,
+    stringi,
+    magrittr,
+    roxygen2
