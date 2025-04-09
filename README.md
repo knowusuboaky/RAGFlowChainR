@@ -168,8 +168,3 @@ Stay tuned on [GitHub](https://github.com/knowusuboaky/chatLLM) for updates!
 ## License
 
 MIT © [Kwadwo Daddy Nyame Owusu Boakye](mailto:kwadwo.owusuboakye@outlook.com)
-
----
-
-Let me know if you'd like this exported as `README.Rmd` or with badges for GitHub Actions, test coverage, or vignette links!
-```
