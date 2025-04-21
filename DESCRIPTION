@@ -8,7 +8,7 @@ Authors@R: person(given = "Kwadwo Daddy Nyame",
                   role = c("aut", "cre"))
 Maintainer: Kwadwo Daddy Nyame Owusu Boakye <kwadwo.owusuboakye@outlook.com>
 Description: Enables Retrieval-Augmented Generation (RAG) workflows in R by combining local vector search 
-    using 'DuckDB' with optional web search via the 'Tavily' API (<https://www.tavily.com/>). 
+    using 'DuckDB' with optional web search via the 'Tavily' API. 
     Supports 'OpenAI'- and 'Ollama'-compatible embedding models, full-text and 'HNSW' indexing, 
     and modular 'LLM' invocation. Designed for advanced question-answering, chat-based applications, 
     and production-ready AI pipelines. This package is the R equivalent of the 'python' package 
