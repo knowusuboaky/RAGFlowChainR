@@ -47,98 +47,99 @@ dummy_embed <- function(x, embedding_dim = 1536) {
     matrix(0, nrow = n_obs, ncol = embedding_dim)
 }
 
+
 ###############################################################################
-# 3) TESTS
+# 3) HELPER: Download vectorstore if missing (skip on CRAN)
+###############################################################################
+download_vectorstore_if_needed <- function(local_path, github_url) {
+  if (!file.exists(local_path)) {
+    message("Downloading vectorstore from GitHub...")
+    dir.create(dirname(local_path), recursive = TRUE, showWarnings = FALSE)
+    download.file(github_url, destfile = local_path, mode = "wb", quiet = TRUE)
+  }
+}
+
+###############################################################################
+# 4) TESTS
 ###############################################################################
 
 test_that("create_rag_chain works with local DuckDB and mock embedding", {
-    # 1) Locate the pre-existing DuckDB file in the 'test-data' folder.
-    #    Make sure you have placed 'my_vectorstore.duckdb' at:
-    #    tests/testthat/test-data/my_vectorstore.duckdb
-    vectorstore_path <- testthat::test_path("test-data", "my_vectorstore.duckdb")
+  local_path <- testthat::test_path("test-data", "my_vectorstore.duckdb")
+  github_url <- "https://github.com/knowusuboaky/RAGFlowChainR/raw/main/tests/testthat/test-data/my_vectorstore.duckdb"
 
-    # If the file doesn't exist, skip.
-    skip_if_not(file.exists(vectorstore_path), "my_vectorstore.duckdb not found in test-data folder.")
+  # Only download if not running on CRAN
+  skip_on_cran()
+  download_vectorstore_if_needed(local_path, github_url)
+  skip_if_not(file.exists(local_path), "my_vectorstore.duckdb not found or failed to download.")
 
-    # 2) Define a minimal mock LLM that returns a fixed answer.
-    mock_llm <- function(prompt) {
-        "Local DB LLM answer"
-    }
+  mock_llm <- function(prompt) {
+    "Local DB LLM answer"
+  }
 
-    # 3) Create the RAG chain using the local DuckDB, specifying the mock_embed
-    chain <- create_rag_chain(
-        llm                      = mock_llm,
-        vector_database_directory= vectorstore_path,
-        method                   = "DuckDB",      # Only DuckDB is supported
-        embedding_function       = mock_embed,    # Provide the mock embedding function
-        embedding_dim            = 1536,          # Must match your stored vectors
-        use_web_search           = FALSE          # Disable web calls
-    )
+  chain <- create_rag_chain(
+    llm                      = mock_llm,
+    vector_database_directory= local_path,
+    method                   = "DuckDB",
+    embedding_function       = mock_embed,
+    embedding_dim            = 1536,
+    use_web_search           = FALSE
+  )
 
-    # 4) (Optional) Skip the chain invocation if environment var "RUN_CHAIN_INVOKE" != "true".
-    skip_if_not(
-        identical(Sys.getenv("RUN_CHAIN_INVOKE"), "true"),
-        "Skipping chain invocation step (set RUN_CHAIN_INVOKE=true to run this part)."
-    )
+  skip_if_not(
+    identical(Sys.getenv("RUN_CHAIN_INVOKE"), "true"),
+    "Skipping chain invocation step (set RUN_CHAIN_INVOKE=true to run this part)."
+  )
 
-    # 5) Invoke the chain with a sample user query
-    result <- chain$invoke("Tell me about local database testing")
+  result <- chain$invoke("Tell me about local database testing")
+  expect_true(is.list(result))
+  expect_true("answer" %in% names(result))
+  expect_equal(result$answer, "Local DB LLM answer")
 
-    # 6) Validate results
-    expect_true(is.list(result))
-    expect_true("answer" %in% names(result))
-    expect_equal(result$answer, "Local DB LLM answer")
+  history <- chain$get_session_history()
+  expect_equal(length(history), 2)
+  expect_equal(history[[1]]$role, "human")
+  expect_equal(history[[2]]$role, "assistant")
 
-    # The chat history should have two messages: human + assistant
-    history <- chain$get_session_history()
-    expect_equal(length(history), 2)
-    expect_equal(history[[1]]$role, "human")
-    expect_equal(history[[2]]$role, "assistant")
-
-    # 7) Disconnect
-    chain$disconnect()
+  chain$disconnect()
 })
 
+
 test_that("create_rag_chain can ignore old chat history (local DuckDB)", {
-    # 1) Locate the DuckDB file
-    vectorstore_path <- testthat::test_path("test-data", "my_vectorstore.duckdb")
-    skip_if_not(file.exists(vectorstore_path), "my_vectorstore.duckdb not found in test-data folder.")
+  local_path <- testthat::test_path("test-data", "my_vectorstore.duckdb")
+  github_url <- "https://github.com/knowusuboaky/RAGFlowChainR/raw/main/tests/testthat/test-data/my_vectorstore.duckdb"
 
-    # 2) Define a mock LLM that returns an 'ignore' response
-    mock_llm_ignore <- function(prompt) {
-        "Answer ignoring old chat"
-    }
+  skip_on_cran()
+  download_vectorstore_if_needed(local_path, github_url)
+  skip_if_not(file.exists(local_path), "my_vectorstore.duckdb not found or failed to download.")
 
-    # 3) Create chain
-    chain <- create_rag_chain(
-        llm                      = mock_llm_ignore,
-        vector_database_directory= vectorstore_path,
-        method                   = "DuckDB",
-        embedding_function       = mock_embed,  # use the mock embed
-        embedding_dim            = 1536,
-        use_web_search           = FALSE
-    )
+  mock_llm_ignore <- function(prompt) {
+    "Answer ignoring old chat"
+  }
 
-    # Build up some chat history
-    chain$invoke("First question")
-    chain$invoke("Second question")
+  chain <- create_rag_chain(
+    llm                      = mock_llm_ignore,
+    vector_database_directory= local_path,
+    method                   = "DuckDB",
+    embedding_function       = mock_embed,
+    embedding_dim            = 1536,
+    use_web_search           = FALSE
+  )
 
-    # (Optional) skip invocation if not desired
-    skip_if_not(
-        identical(Sys.getenv("RUN_CHAIN_INVOKE"), "true"),
-        "Skipping chain invocation step (set RUN_CHAIN_INVOKE=true to run this part)."
-    )
+  chain$invoke("First question")
+  chain$invoke("Second question")
 
-    # 4) Invoke with ignore_history = TRUE
-    result <- chain$invoke("Third question, ignoring old chat", ignore_history = TRUE)
-    expect_true(is.list(result))
-    expect_true("answer" %in% names(result))
-    expect_equal(result$answer, "Answer ignoring old chat")
+  skip_if_not(
+    identical(Sys.getenv("RUN_CHAIN_INVOKE"), "true"),
+    "Skipping chain invocation step (set RUN_CHAIN_INVOKE=true to run this part)."
+  )
 
-    # 5) Final chat history still accumulates messages
-    history <- chain$get_session_history()
-    expect_true(length(history) >= 4)
+  result <- chain$invoke("Third question, ignoring old chat", ignore_history = TRUE)
+  expect_true(is.list(result))
+  expect_true("answer" %in% names(result))
+  expect_equal(result$answer, "Answer ignoring old chat")
 
-    # Cleanup
-    chain$disconnect()
+  history <- chain$get_session_history()
+  expect_true(length(history) >= 4)
+
+  chain$disconnect()
 })

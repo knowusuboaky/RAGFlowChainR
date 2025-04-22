@@ -54,50 +54,80 @@ test_that("fetch_data website crawling returns a data frame (using r4ds.hadley.n
 # ----------------------------------------------------------------------
 # Test for local files in tests/testthat/test-data/
 # ----------------------------------------------------------------------
+
+# Helper function to download a file if not present (skip on CRAN)
+download_test_file_if_needed <- function(local_path, github_url) {
+  if (!file.exists(local_path)) {
+    message(sprintf("Downloading %s from GitHub...", basename(local_path)))
+    dir.create(dirname(local_path), recursive = TRUE, showWarnings = FALSE)
+    download.file(github_url, destfile = local_path, mode = "wb", quiet = TRUE)
+  }
+}
+
 test_that("fetch_data can read multiple local files from test-data folder", {
 
-    pdf_path  <- testthat::test_path("test-data", "sprint.pdf")
-    docx_path <- testthat::test_path("test-data", "scrum.docx")
-    pptx_path <- testthat::test_path("test-data", "introduction.pptx")
-    txt_path  <- testthat::test_path("test-data", "overview.txt")
+  skip_on_cran()
 
-    # --- PDF: sprint.pdf ---
-    if (file.exists(pdf_path)) {
-        pdf_res <- fetch_data(local_paths = pdf_path)
-        expect_true(is.data.frame(pdf_res))
-        expect_true(nrow(pdf_res) >= 1)
-        expect_true(any(pdf_res$source_type == "pdf"))
-    } else {
-        skip("sprint.pdf not found in test-data folder.")
-    }
+  # Define local paths and GitHub URLs
+  test_files <- list(
+    pdf  = list(
+      path = testthat::test_path("test-data", "sprint.pdf"),
+      url  = "https://github.com/knowusuboaky/RAGFlowChainR/raw/main/tests/testthat/test-data/sprint.pdf"
+    ),
+    docx = list(
+      path = testthat::test_path("test-data", "scrum.docx"),
+      url  = "https://github.com/knowusuboaky/RAGFlowChainR/raw/main/tests/testthat/test-data/scrum.docx"
+    ),
+    pptx = list(
+      path = testthat::test_path("test-data", "introduction.pptx"),
+      url  = "https://github.com/knowusuboaky/RAGFlowChainR/raw/main/tests/testthat/test-data/introduction.pptx"
+    ),
+    txt  = list(
+      path = testthat::test_path("test-data", "overview.txt"),
+      url  = "https://github.com/knowusuboaky/RAGFlowChainR/raw/main/tests/testthat/test-data/overview.txt"
+    )
+  )
 
-    # --- DOCX: scrum.docx ---
-    if (file.exists(docx_path)) {
-        docx_res <- fetch_data(local_paths = docx_path)
-        expect_true(is.data.frame(docx_res))
-        expect_true(nrow(docx_res) >= 1)
-        expect_true(any(docx_res$source_type == "docx"))
-    } else {
-        skip("scrum.docx not found in test-data folder.")
-    }
+  # Download missing files
+  lapply(test_files, function(file) download_test_file_if_needed(file$path, file$url))
 
-    # --- PPTX: introduction.pptx ---
-    if (file.exists(pptx_path)) {
-        pptx_res <- fetch_data(local_paths = pptx_path)
-        expect_true(is.data.frame(pptx_res))
-        expect_true(nrow(pptx_res) >= 1)
-        expect_true(any(pptx_res$source_type == "pptx"))
-    } else {
-        skip("introduction.pptx not found in test-data folder.")
-    }
+  # --- PDF: sprint.pdf ---
+  if (file.exists(test_files$pdf$path)) {
+    pdf_res <- fetch_data(local_paths = test_files$pdf$path)
+    expect_true(is.data.frame(pdf_res))
+    expect_true(nrow(pdf_res) >= 1)
+    expect_true(any(pdf_res$source_type == "pdf"))
+  } else {
+    skip("sprint.pdf not found in test-data folder.")
+  }
 
-    # --- TXT: overview.txt ---
-    if (file.exists(txt_path)) {
-        txt_res <- fetch_data(local_paths = txt_path)
-        expect_true(is.data.frame(txt_res))
-        expect_true(nrow(txt_res) >= 1)
-        expect_true(any(txt_res$source_type == "txt"))
-    } else {
-        skip("overview.txt not found in test-data folder.")
-    }
+  # --- DOCX: scrum.docx ---
+  if (file.exists(test_files$docx$path)) {
+    docx_res <- fetch_data(local_paths = test_files$docx$path)
+    expect_true(is.data.frame(docx_res))
+    expect_true(nrow(docx_res) >= 1)
+    expect_true(any(docx_res$source_type == "docx"))
+  } else {
+    skip("scrum.docx not found in test-data folder.")
+  }
+
+  # --- PPTX: introduction.pptx ---
+  if (file.exists(test_files$pptx$path)) {
+    pptx_res <- fetch_data(local_paths = test_files$pptx$path)
+    expect_true(is.data.frame(pptx_res))
+    expect_true(nrow(pptx_res) >= 1)
+    expect_true(any(pptx_res$source_type == "pptx"))
+  } else {
+    skip("introduction.pptx not found in test-data folder.")
+  }
+
+  # --- TXT: overview.txt ---
+  if (file.exists(test_files$txt$path)) {
+    txt_res <- fetch_data(local_paths = test_files$txt$path)
+    expect_true(is.data.frame(txt_res))
+    expect_true(nrow(txt_res) >= 1)
+    expect_true(any(txt_res$source_type == "txt"))
+  } else {
+    skip("overview.txt not found in test-data folder.")
+  }
 })
