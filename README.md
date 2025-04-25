@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# RAGFlowChainR <a href="https://knowusuboaky.github.io/RAGFlowChainR"><img src="man/figures/raglogo.png" align="right" height="120" /></a>
+# RAGFlowChainR <a href="https://knowusuboaky.github.io/RAGFlowChainR"><img src="man/figures/ragopenlogo.png" align="right" height="120" /></a>
 
 <!-- badges: start -->
 
@@ -39,6 +39,7 @@ Python version: [RAGFlowChain
 GitHub (Python):
 [RAGFlowChain](https://github.com/knowusuboaky/RAGFlowChain)
 
+
 ------------------------------------------------------------------------
 
 ## Installation
@@ -67,6 +68,7 @@ reference](https://knowusuboaky.github.io/RAGFlowChainR/reference) or the
 details.
 
 ------------------------------------------------------------------------
+
 
 ## 🔐 Environment Setup
 

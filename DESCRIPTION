@@ -1,18 +1,20 @@
 Package: RAGFlowChainR
 Type: Package
 Title: Retrieval-Augmented Generation (RAG) Workflows in R with Local and Web Search
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: person(given = "Kwadwo Daddy Nyame",
                   family = "Owusu Boakye",
                   email = "kwadwo.owusuboakye@outlook.com",
                   role = c("aut", "cre"))
 Maintainer: Kwadwo Daddy Nyame Owusu Boakye <kwadwo.owusuboakye@outlook.com>
-Description: Enables Retrieval-Augmented Generation (RAG) workflows in R by combining local vector search 
-    using 'DuckDB' with optional web search via the 'Tavily' API. 
-    Supports 'OpenAI'- and 'Ollama'-compatible embedding models, full-text and 'HNSW' indexing, 
-    and modular 'LLM' invocation. Designed for advanced question-answering, chat-based applications, 
-    and production-ready AI pipelines. This package is the R equivalent of the 'python' package 
-    'RAGFlowChain' available at <https://pypi.org/project/RAGFlowChain/>.
+Description: Enables Retrieval-Augmented Generation (RAG) workflows in R by combining
+    local vector search using 'DuckDB' with optional web search via the 'Tavily' API.
+    Supports OpenAI- and Ollama-compatible embedding models, full-text and HNSW
+    (Hierarchical Navigable Small World) indexing, and modular large language model
+    (LLM) invocation. Designed for advanced question-answering, chat-based
+    applications, and production-ready AI pipelines. This package is the R
+    equivalent of the 'python' package 'RAGFlowChain' available at
+    <https://pypi.org/project/RAGFlowChain/>.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -22,7 +24,7 @@ BugReports: https://github.com/knowusuboaky/RAGFlowChainR/issues
 Depends: R (>= 4.1.0)
 Imports:
     DBI,
-    duckdb,
+    duckdb (>= 0.10.0),
     httr,
     dplyr,
     pdftools,
@@ -31,8 +33,9 @@ Imports:
     xml2,
     curl,
 Suggests:
-    testthat,
+    testthat (>= 3.0.0),
     jsonlite,
     stringi,
     magrittr,
     roxygen2
+Config/testthat/edition: 3
