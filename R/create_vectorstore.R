@@ -1,20 +1,16 @@
-#' @title create_vectorstore.R Overview
-#' @description
-#' Provides tools to:
-#' - Embed page content using OpenAI API (with support for chunking)
-#' - Create a DuckDB-based vector store with support for HNSW indexing and optional FTS
-#' - Insert documents with embedding vectors
-#' - Perform approximate nearest-neighbor search using DuckDB's vss extension
+#' create_vectorstore.R — Vector-store utilities
 #'
-#' ## Required Packages
-#' The following packages are required. Install them with:
-#' \code{install.packages(c("dplyr", "DBI", "duckdb", "httr", "jsonlite", "stringi"))}
+#' Tools to
+#' • embed text with the OpenAI API
+#' • create a DuckDB-backed vector store (optionally with the `vss` extension)
+#' • insert documents with embeddings (handles chunking)
+#' • build HNSW/FTS indexes and run nearest-neighbour search
 #'
-#' @note Only `create_vectorstore()` is exported for use.
+#' Only `create_vectorstore()` is exported; all other helpers are internal.
 #' @name create_vectorstore
 NULL
 
-# Required libraries
+# ───────────────────────────── dependencies ────────────────────────────────
 library(DBI)
 library(dplyr)
 library(duckdb)
@@ -22,287 +18,258 @@ library(httr)
 library(jsonlite)
 library(stringi)
 
-# ==============================================================================
-# 1) EMBEDDING FUNCTIONS
-# ==============================================================================
-
+# =============================================================================
+# 1) EMBEDDING
+# =============================================================================
 embed_openai <- function(
-        x,
-        model         = "text-embedding-ada-002",
-        base_url      = "https://api.openai.com/v1",
-        api_key       = Sys.getenv("OPENAI_API_KEY"),
-        batch_size    = 20L,
-        embedding_dim = 1536
+    x,
+    model         = "text-embedding-ada-002",
+    base_url      = "https://api.openai.com/v1",
+    api_key       = Sys.getenv("OPENAI_API_KEY"),
+    batch_size    = 20L,
+    embedding_dim = 1536
 ) {
-    if (missing(x) || is.null(x)) {
-        force(model); force(base_url); force(api_key); force(batch_size); force(embedding_dim)
-        return(function(texts) embed_openai(
-            texts, model, base_url, api_key, batch_size, embedding_dim
-        ))
-    }
-    if (is.data.frame(x)) {
-        x[["embedding"]] <- embed_openai(
-            x[["page_content"]], model, base_url, api_key, batch_size, embedding_dim
-        )
-        return(x)
-    }
-    if (!nzchar(api_key)) {
-        stop("Please set OPENAI_API_KEY in your environment.")
-    }
-    if (!length(x)) {
-        return(matrix(numeric(0), nrow = 0, ncol = embedding_dim))
-    }
+  if (missing(x) || is.null(x)) {
+    force(model); force(base_url); force(api_key); force(batch_size); force(embedding_dim)
+    return(function(txt) embed_openai(
+      txt, model, base_url, api_key, batch_size, embedding_dim))
+  }
 
-    body <- list(model = model, input = as.list(x))
-    res <- httr::POST(
-        url = file.path(base_url, "embeddings"),
-        encode = "json",
-        body   = body,
-        httr::add_headers(Authorization = paste("Bearer", api_key))
+  if (is.data.frame(x)) {
+    x[["embedding"]] <- embed_openai(
+      x[["page_content"]], model, base_url, api_key, batch_size, embedding_dim
     )
-    if (httr::http_error(res)) {
-        stop("OpenAI API error:\n", httr::content(res, "text"))
-    }
-    parsed <- httr::content(res, "parsed")
-    emb_list <- lapply(parsed$data, function(z) z$embedding)
-    emb_mat <- do.call(rbind, emb_list)
-    storage.mode(emb_mat) <- "double"
-    if (ncol(emb_mat) != embedding_dim) {
-        stop(sprintf(
-            "OpenAI returned %d-d embeddings, but embedding_dim=%d. Adjust accordingly.",
-            ncol(emb_mat), embedding_dim
-        ))
-    }
-    emb_mat
+    return(x)
+  }
+
+  if (!nzchar(api_key))
+    stop("Set OPENAI_API_KEY in your environment.", call. = FALSE)
+  if (!length(x))
+    return(matrix(numeric(0), 0, embedding_dim))
+
+  res <- httr::POST(
+    url    = file.path(base_url, "embeddings"),
+    body   = list(model = model, input = as.list(x)),
+    encode = "json",
+    httr::add_headers(Authorization = paste("Bearer", api_key))
+  )
+  if (httr::http_error(res))
+    stop("OpenAI API error:\n", httr::content(res, "text"), call. = FALSE)
+
+  emb <- do.call(rbind, lapply(httr::content(res, "parsed")$data, `[[`, "embedding"))
+  storage.mode(emb) <- "double"
+  if (ncol(emb) != embedding_dim)
+    stop(sprintf("OpenAI returned %d-d embeddings (expected %d).", ncol(emb), embedding_dim))
+  emb
 }
 
-# ==============================================================================
+# =============================================================================
 # 2) CREATE / CONNECT DUCKDB
-# ==============================================================================
-
-#' Create a DuckDB-Based Vector Store
+# =============================================================================
+#' Create a DuckDB-based vector store
 #'
-#' Initializes or connects to a DuckDB instance and prepares a table to store embeddings.
-#' Optionally wipes existing data and installs required extensions for vector search.
+#' @param db_path        Path to the DuckDB file (\"`:memory:`\" for RAM).
+#' @param overwrite      If `TRUE`, delete any existing file / table.
+#' @param embedding_dim  Dimension of the embeddings stored.
+#' @param load_vss       Try to load the experimental `vss` extension?
+#'   Defaults to `TRUE` except during CRAN checks where it is forced `FALSE`.
 #'
-#' @param db_path Path to the DuckDB file. Use ":memory:" for an in-memory DB.
-#' @param overwrite Logical, whether to drop and recreate the table if it already exists.
-#' @param embedding_dim Integer, the dimensionality of the embedding vectors.
-#'
-#' @return A DuckDB connection object.
+#' @return A live `duckdb_connection`. Disconnect manually with
+#'   `DBI::dbDisconnect(con, shutdown = TRUE)`.
 #' @export
 create_vectorstore <- function(
-        db_path       = ":memory:",
-        overwrite     = FALSE,
-        embedding_dim = 1536
+    db_path       = ":memory:",
+    overwrite     = FALSE,
+    embedding_dim = 1536,
+    load_vss      = identical(Sys.getenv("_R_CHECK_PACKAGE_NAME_"), "")
 ) {
-    if (db_path != ":memory:" && file.exists(db_path) && overwrite) {
-        unlink(db_path)
-        wal <- paste0(db_path, ".wal")
-        if (file.exists(wal)) unlink(wal)
-    }
+  if (db_path != ":memory:" && overwrite && file.exists(db_path))
+    unlink(c(db_path, paste0(db_path, ".wal")))
 
-    con <- DBI::dbConnect(duckdb::duckdb(), db_path, read_only = FALSE)
-    DBI::dbExecute(con, "INSTALL vss; LOAD vss;")
+  con <- DBI::dbConnect(duckdb::duckdb(), dbdir = db_path, read_only = FALSE)
 
-    if (overwrite) {
-        DBI::dbExecute(con, "DROP TABLE IF EXISTS vectors;")
-        DBI::dbExecute(con, "DROP SEQUENCE IF EXISTS vector_seq;")
-    }
+  ## ── extension handling ───────────────────────────────────────────────────
+  have_vss <- FALSE
+  if (load_vss) {
+    try({
+      exts <- DBI::dbGetQuery(con, "PRAGMA show_extensions()")$name
+      if ("vss" %in% exts) {
+        DBI::dbExecute(con, "LOAD vss;")
+        have_vss <- TRUE
+      } else if (interactive() &&
+                 !identical(Sys.getenv("_R_CHECK_CRAN_INCOMING_"), "true")) {
+        DBI::dbExecute(con, "INSTALL vss; LOAD vss;")
+        have_vss <- TRUE
+      }
+    }, silent = TRUE)
+    if (!have_vss)
+      warning("Could not load DuckDB vss extension; falling back to FLOAT[] column.")
+  }
 
-    DBI::dbExecute(con, "CREATE SEQUENCE IF NOT EXISTS vector_seq START 1;")
-    create_sql <- sprintf("
-    CREATE TABLE IF NOT EXISTS vectors(
-      id           INT   DEFAULT nextval('vector_seq'),
-      page_content VARCHAR,
-      embedding    FLOAT[%d]
-    );
-  ", embedding_dim)
-    DBI::dbExecute(con, create_sql)
+  ## ── schema ───────────────────────────────────────────────────────────────
+  if (overwrite) {
+    DBI::dbExecute(con, "DROP TABLE IF EXISTS vectors;")
+    DBI::dbExecute(con, "DROP SEQUENCE IF EXISTS vector_seq;")
+  }
+  DBI::dbExecute(con, "CREATE SEQUENCE IF NOT EXISTS vector_seq START 1;")
 
-    con
+  col_type <- if (have_vss) sprintf("VECTOR[%d]", embedding_dim) else "FLOAT[]"
+  DBI::dbExecute(
+    con,
+    sprintf(
+      "CREATE TABLE IF NOT EXISTS vectors(
+         id INT DEFAULT nextval('vector_seq'),
+         page_content VARCHAR,
+         embedding    %s
+       );", col_type)
+  )
+  invisible(con)
 }
 
 connect_vectorstore <- function(db_path = ":memory:", read_only = FALSE) {
-    con <- DBI::dbConnect(duckdb::duckdb(), db_path, read_only = read_only)
-    DBI::dbExecute(con, "INSTALL vss; LOAD vss;")
-    con
+  DBI::dbConnect(duckdb::duckdb(), dbdir = db_path, read_only = read_only)
 }
 
-# ==============================================================================
+# =============================================================================
 # 3) INSERT WITH CHUNKING
-# ==============================================================================
-
-chunk_content_approx <- function(content, chunk_chars = 12000) {
-    n <- nchar(content)
-    if (n <= chunk_chars) {
-        return(content)
-    }
-    starts <- seq(1, n, by = chunk_chars)
-    ends   <- pmin(starts + chunk_chars - 1, n)
-    mapply(substr, content, starts, ends, USE.NAMES = FALSE)
+# =============================================================================
+chunk_content_approx <- function(txt, chunk_chars = 12000) {
+  n <- nchar(txt, "bytes")
+  if (n <= chunk_chars) return(txt)
+  starts <- seq.int(1L, n, by = chunk_chars)
+  ends   <- pmin(starts + chunk_chars - 1L, n)
+  Map(substr, txt, starts, ends, USE.NAMES = FALSE)
 }
 
 insert_vectors <- function(
-        con,
-        df,
-        embed_fun     = embed_openai(),
-        chunk_chars   = 12000,
-        embedding_dim = 1536
+    con,
+    df,
+    embed_fun     = embed_openai(),
+    chunk_chars   = 12000,
+    embedding_dim = 1536
 ) {
-    if (!"page_content" %in% names(df)) {
-        if ("content" %in% names(df)) {
-            df$page_content <- df$content
-        } else {
-            stop("Data frame must have 'page_content' or 'content' column.")
-        }
+  if (!"page_content" %in% names(df)) {
+    if ("content" %in% names(df)) df$page_content <- df$content
+    else stop("Data frame must contain 'page_content' or 'content'.")
+  }
+
+  ## ── chunking ─────────────────────────────────────────────────────────────
+  expanded <- list(); idx <- 1L
+  for (i in seq_len(nrow(df))) {
+    row_i <- df[i, , drop = FALSE]
+    for (txt in chunk_content_approx(row_i$page_content, chunk_chars)) {
+      row              <- row_i
+      row$page_content <- txt
+      expanded[[idx]]  <- row
+      idx <- idx + 1L
     }
+  }
+  df_exp <- dplyr::bind_rows(expanded)
+  if (!nrow(df_exp)) return(invisible(NULL))
 
-    expanded <- list()
-    idx <- 1
-    for (i in seq_len(nrow(df))) {
-        row_i <- df[i, ]
-        splitted <- chunk_content_approx(row_i$page_content, chunk_chars)
-        for (chunked_content in splitted) {
-            row_cp <- row_i
-            row_cp$page_content <- chunked_content
-            expanded[[idx]] <- row_cp
-            idx <- idx + 1
-        }
-    }
-    df_expanded <- dplyr::bind_rows(expanded)
-    if (!nrow(df_expanded)) return(invisible(NULL))
+  ## ── embeddings ───────────────────────────────────────────────────────────
+  if (!"embedding" %in% names(df_exp)) {
+    emb <- embed_fun(df_exp$page_content)
+    if (ncol(emb) != embedding_dim)
+      stop("Embedding dimensionality mismatch.")
+    storage.mode(emb) <- "double"
+    df_exp$embedding  <- emb
+  } else if (is.matrix(df_exp$embedding)) {
+    if (ncol(df_exp$embedding) != embedding_dim)
+      stop("Embedding dimensionality mismatch.")
+    storage.mode(df_exp$embedding) <- "double"
+  } else {
+    df_exp$embedding <- lapply(df_exp$embedding, function(v) {
+      if (length(v) != embedding_dim)
+        stop("Embedding dimensionality mismatch.")
+      storage.mode(v) <- "double"; v
+    })
+  }
 
-    if (!"embedding" %in% names(df_expanded)) {
-        emb_mat <- embed_fun(df_expanded$page_content)
-        if (ncol(emb_mat) != embedding_dim) {
-            stop(sprintf(
-                "Embeddings dimension is %d, but embedding_dim=%d. Adjust code or embed_fun config.",
-                ncol(emb_mat), embedding_dim
-            ))
-        }
-        storage.mode(emb_mat) <- "double"
-        df_expanded$embedding <- emb_mat
-    } else {
-        if (is.matrix(df_expanded$embedding)) {
-            if (ncol(df_expanded$embedding) != embedding_dim) {
-                stop(sprintf(
-                    "Embeddings dimension is %d, but embedding_dim=%d. Mismatch.",
-                    ncol(df_expanded$embedding), embedding_dim
-                ))
-            }
-            storage.mode(df_expanded$embedding) <- "double"
-        } else {
-            df_expanded$embedding <- lapply(df_expanded$embedding, function(vec) {
-                if (length(vec) != embedding_dim) {
-                    stop(sprintf(
-                        "One row has embedding dimension %d, but embedding_dim=%d. Mismatch.",
-                        length(vec), embedding_dim
-                    ))
-                }
-                storage.mode(vec) <- "double"
-                vec
-            })
-        }
-    }
+  ## ── pick value constructor: array_value() vs list_value() ────────────────
+  table_types <- DBI::dbGetQuery(con, "PRAGMA table_info('vectors')")$type
+  val_fun     <- if (any(grepl("VECTOR", table_types, fixed = TRUE)))
+    "array_value" else "list_value"
 
-    n <- nrow(df_expanded)
-    rows_sql <- character(n)
-    for (i in seq_len(n)) {
-        content_esc <- DBI::dbQuoteString(con, df_expanded$page_content[i])
-        if (is.matrix(df_expanded$embedding)) {
-            e_vec <- df_expanded$embedding[i, ]
-        } else {
-            e_vec <- df_expanded$embedding[[i]]
-        }
-        e_str <- paste(e_vec, collapse = ",")
-        e_expr <- sprintf("CAST(array_value(%s) AS FLOAT[])", e_str)
-        rows_sql[i] <- sprintf("(%s,%s)", content_esc, e_expr)
-    }
+  rows_sql <- vapply(seq_len(nrow(df_exp)), function(i) {
+    esc <- DBI::dbQuoteString(con, df_exp$page_content[i])
+    vec <- if (is.matrix(df_exp$embedding)) df_exp$embedding[i, ]
+    else df_exp$embedding[[i]]
+    sprintf("(%s, %s(%s))", esc, val_fun, paste(vec, collapse = ","))
+  }, character(1))
 
-    insert_sql <- sprintf("
-    INSERT INTO vectors(page_content, embedding)
-    VALUES %s
-  ", paste(rows_sql, collapse = ",\n"))
-
-    DBI::dbExecute(con, insert_sql)
-    invisible(NULL)
+  DBI::dbExecute(
+    con,
+    sprintf("INSERT INTO vectors(page_content, embedding) VALUES %s",
+            paste(rows_sql, collapse = ",\n"))
+  )
+  invisible(NULL)
 }
 
-# ==============================================================================
-# 4) BUILD INDEX & SEARCH
-# ==============================================================================
-
+# =============================================================================
+# 4) INDEX & SEARCH
+# =============================================================================
 build_vector_index <- function(store, type = c("vss", "fts")) {
-    con <- if (inherits(store, "DBIConnection")) store else store
-    type <- match.arg(type, several.ok = TRUE)
+  con  <- if (inherits(store, "DBIConnection")) store else store
+  type <- match.arg(type, several.ok = TRUE)
 
-    if ("vss" %in% type) {
-        DBI::dbExecute(con, "SET hnsw_enable_experimental_persistence = true;")
-        DBI::dbExecute(con, "DROP INDEX IF EXISTS idx_vectors_embedding;")
-        DBI::dbExecute(con, "
-      CREATE INDEX idx_vectors_embedding
-      ON vectors
-      USING HNSW(embedding);
-    ")
+  # does the vectors table use the VECTOR type?
+  tbl_types  <- DBI::dbGetQuery(con, "PRAGMA table_info('vectors')")$type
+  have_vss   <- any(grepl("VECTOR", tbl_types, fixed = TRUE))
+
+  ## ── HNSW via vss ─────────────────────────────────────────────────────────
+  if ("vss" %in% type) {
+    if (!have_vss) {
+      warning("vss extension not available in this store; skipping HNSW index.")
+    } else {
+      DBI::dbExecute(con, "SET hnsw_enable_experimental_persistence = true;")
+      DBI::dbExecute(con, "DROP INDEX IF EXISTS idx_vectors_embedding;")
+      DBI::dbExecute(con, "
+        CREATE INDEX idx_vectors_embedding
+        ON vectors USING HNSW(embedding);")
     }
+  }
 
-    if ("fts" %in% type) {
-        DBI::dbExecute(con, "INSTALL fts; LOAD fts;")
-        DBI::dbExecute(con, "
+  ## ── Full-text search index ──────────────────────────────────────────────
+  if ("fts" %in% type) {
+    DBI::dbExecute(con, "INSTALL fts; LOAD fts;")
+    DBI::dbExecute(con, "
       PRAGMA create_fts_index(
         'vectors',
         'id',
         'page_content',
-        overwrite=1
-      );
-    ")
-    }
-
-    invisible(store)
+        overwrite = 1
+      );")
+  }
+  invisible(store)
 }
 
 search_vectors <- function(
-        con,
-        query_text,
-        top_k         = 5,
-        embed_fun     = embed_openai(),
-        embedding_dim = 1536
+    con,
+    query_text,
+    top_k         = 5,
+    embed_fun     = embed_openai(),
+    embedding_dim = 1536
 ) {
-    q_emb <- embed_fun(query_text)
-    if (ncol(q_emb) != embedding_dim) {
-        stop(sprintf(
-            "Query embedding dimension is %d, but embedding_dim=%d. Mismatch.",
-            ncol(q_emb), embedding_dim
-        ))
-    }
-    storage.mode(q_emb) <- "double"
+  q_emb <- embed_fun(query_text)
+  if (ncol(q_emb) != embedding_dim)
+    stop("Query embedding dimension mismatch.")
+  storage.mode(q_emb) <- "double"
 
-    DBI::dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
-    create_tmp_sql <- sprintf("
-    CREATE TEMP TABLE __temp_query__ (
-      embedding FLOAT[%d]
-    );
-  ", embedding_dim)
-    DBI::dbExecute(con, create_tmp_sql)
+  DBI::dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
+  DBI::dbExecute(con, sprintf(
+    "CREATE TEMP TABLE __temp_query__(embedding FLOAT[%d]);", embedding_dim))
+  DBI::dbExecute(con, sprintf(
+    "INSERT INTO __temp_query__ VALUES (list_value(%s));",
+    paste(q_emb[1, ], collapse = ",")))  # list_value works for both column types
 
-    emb_str <- paste(q_emb[1, ], collapse = ",")
-    arr_expr <- sprintf("array_value(%s)", emb_str)
-    insert_tmp_sql <- sprintf("
-    INSERT INTO __temp_query__(embedding)
-    VALUES (%s)
-  ", arr_expr)
-    DBI::dbExecute(con, insert_tmp_sql)
-
-    sql <- sprintf("
-    SELECT v.id, v.page_content, v.embedding <=> (SELECT embedding FROM __temp_query__) AS dist
+  res <- DBI::dbGetQuery(con, sprintf("
+    SELECT v.id, v.page_content,
+           v.embedding <=> (SELECT embedding FROM __temp_query__) AS dist
     FROM vectors v
     ORDER BY dist ASC
-    LIMIT %d;
-  ", top_k)
+    LIMIT %d;", top_k))
 
-    res <- DBI::dbGetQuery(con, sql)
-    DBI::dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
-
-    res
+  DBI::dbExecute(con, "DROP TABLE IF EXISTS __temp_query__;")
+  res
 }

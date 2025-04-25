@@ -2,38 +2,36 @@
 % Please edit documentation in R/create_vectorstore.R
 \name{create_vectorstore}
 \alias{create_vectorstore}
-\title{create_vectorstore.R Overview}
+\title{create_vectorstore.R — Vector-store utilities}
 \usage{
 create_vectorstore(
   db_path = ":memory:",
   overwrite = FALSE,
-  embedding_dim = 1536
+  embedding_dim = 1536,
+  load_vss = identical(Sys.getenv("_R_CHECK_PACKAGE_NAME_"), "")
 )
 }
 \arguments{
-\item{db_path}{Path to the DuckDB file. Use ":memory:" for an in-memory DB.}
+\item{db_path}{Path to the DuckDB file (\"`:memory:`\" for RAM).}
 
-\item{overwrite}{Logical, whether to drop and recreate the table if it already exists.}
+\item{overwrite}{If `TRUE`, delete any existing file / table.}
 
-\item{embedding_dim}{Integer, the dimensionality of the embedding vectors.}
+\item{embedding_dim}{Dimension of the embeddings stored.}
+
+\item{load_vss}{Try to load the experimental `vss` extension?
+Defaults to `TRUE` except during CRAN checks where it is forced `FALSE`.}
 }
 \value{
-A DuckDB connection object.
+A live `duckdb_connection`. Disconnect manually with
+  `DBI::dbDisconnect(con, shutdown = TRUE)`.
 }
 \description{
-Provides tools to:
-- Embed page content using OpenAI API (with support for chunking)
-- Create a DuckDB-based vector store with support for HNSW indexing and optional FTS
-- Insert documents with embedding vectors
-- Perform approximate nearest-neighbor search using DuckDB's vss extension
-
-## Required Packages
-The following packages are required. Install them with:
-\code{install.packages(c("dplyr", "DBI", "duckdb", "httr", "jsonlite", "stringi"))}
-
-Initializes or connects to a DuckDB instance and prepares a table to store embeddings.
-Optionally wipes existing data and installs required extensions for vector search.
+Tools to
+• embed text with the OpenAI API
+• create a DuckDB-backed vector store (optionally with the `vss` extension)
+• insert documents with embeddings (handles chunking)
+• build HNSW/FTS indexes and run nearest-neighbour search
 }
-\note{
-Only `create_vectorstore()` is exported for use.
+\details{
+Only `create_vectorstore()` is exported; all other helpers are internal.
 }

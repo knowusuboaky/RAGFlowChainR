@@ -1,58 +1,57 @@
+---
+output: github_document
+---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  eval = FALSE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
 
 # RAGFlowChainR <a href="https://github.com/knowusuboaky/RAGFlowChainR"><img src="man/figures/raglogo.png" align="right" height="120" /></a>
 
 <!-- badges: start -->
-
-[![License:
-MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![CRAN
-status](https://www.r-pkg.org/badges/version/RAGFlowChainR)](https://cran.r-project.org/package=RAGFlowChainR)
-[![Total
-Downloads](https://cranlogs.r-pkg.org/badges/grand-total/RAGFlowChainR?color=orange)](https://cranlogs.r-pkg.org/badges/grand-total/RAGFlowChainR)
-[![Codecov test
-coverage](https://codecov.io/gh/knowusuboaky/RAGFlowChainR/branch/main/graph/badge.svg)](https://app.codecov.io/gh/knowusuboaky/RAGFlowChainR?branch=main)
-[![Last
-Commit](https://img.shields.io/github/last-commit/knowusuboaky/RAGFlowChainR.svg)](https://github.com/knowusuboaky/RAGFlowChainR/commits/main)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![CRAN status](https://www.r-pkg.org/badges/version/RAGFlowChainR)](https://cran.r-project.org/package=RAGFlowChainR)
+[![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/RAGFlowChainR?color=orange)](https://cranlogs.r-pkg.org/badges/grand-total/RAGFlowChainR)
+[![Codecov test coverage](https://codecov.io/gh/knowusuboaky/RAGFlowChainR/branch/main/graph/badge.svg)](https://app.codecov.io/gh/knowusuboaky/RAGFlowChainR?branch=main)
+[![Last Commit](https://img.shields.io/github/last-commit/knowusuboaky/RAGFlowChainR.svg)](https://github.com/knowusuboaky/RAGFlowChainR/commits/main)
 [![Issues](https://img.shields.io/github/issues/knowusuboaky/RAGFlowChainR.svg)](https://github.com/knowusuboaky/RAGFlowChainR/issues)
 <!-- badges: end -->
 
 ## Overview
 
-**RAGFlowChainR** is an R package that brings Retrieval-Augmented
-Generation (RAG) capabilities to R, inspired by LangChain. It enables
-intelligent retrieval of documents from a local vector store (DuckDB),
-optional web search, and seamless integration with Large Language Models
-(LLMs).
+**RAGFlowChainR** is an R package that brings Retrieval-Augmented Generation (RAG) capabilities to R, inspired by LangChain. It enables intelligent retrieval of documents from a local vector store (DuckDB), optional web search, and seamless integration with Large Language Models (LLMs).
 
 Features include:
 
 - 📂 Ingest files and websites
 - 🔍 Semantic search using vector embeddings
-- 🧠 RAG chain execution with conversational memory and dynamic prompt
-  construction
+- 🧠 RAG chain execution with conversational memory and dynamic prompt construction
 - 🔌 Plug-and-play with OpenAI, Ollama, Groq, and Anthropic
 
-Python version: [RAGFlowChain
-(PyPI)](https://pypi.org/project/RAGFlowChain/)  
-GitHub (Python):
-[RAGFlowChain](https://github.com/knowusuboaky/RAGFlowChain)
+Python version: [RAGFlowChain (PyPI)](https://pypi.org/project/RAGFlowChain/)  
+GitHub (Python): [RAGFlowChain](https://github.com/knowusuboaky/RAGFlowChain)
 
-------------------------------------------------------------------------
+---
 
 ## Installation
 
-``` r
+```r
 if (!requireNamespace("remotes")) install.packages("remotes")
 remotes::install_github("knowusuboaky/RAGFlowChainR")
 ```
 
-------------------------------------------------------------------------
+---
 
 ## 🔐 Environment Setup
 
-``` r
+```r
 Sys.setenv(TAVILY_API_KEY    = "your-tavily-api-key")
 Sys.setenv(OPENAI_API_KEY    = "your-openai-api-key")
 Sys.setenv(GROQ_API_KEY      = "your-groq-api-key")
@@ -61,13 +60,13 @@ Sys.setenv(ANTHROPIC_API_KEY = "your-anthropic-api-key")
 
 To persist across sessions, add these to your `~/.Renviron` file.
 
-------------------------------------------------------------------------
+---
 
 ## Usage
 
 ### 1. Data Ingestion
 
-``` r
+```r
 library(RAGFlowChainR)
 
 local_files <- c("tests/testthat/test-data/sprint.pdf", 
@@ -83,7 +82,7 @@ response <- fetch_data(
 )
 ```
 
-``` r
+```r
 response
 #>                                source                                      title ...
 #> 1                 documents/sprint.pdf                                       <NA> ...
@@ -96,11 +95,11 @@ cat(response$content[1])
 #> Getting Started with Scrum\nCodeWithPraveen.com ...
 ```
 
-------------------------------------------------------------------------
+---
 
 ### 2. Vector Store & Semantic Search
 
-``` r
+```r
 con <- create_vectorstore("documents/my_vectors.duckdb", overwrite = TRUE)
 
 docs <- data.frame(head(response))  # reuse from fetch_data()
@@ -117,7 +116,7 @@ build_vector_index(con, type = c("vss", "fts"))
 response <- search_vectors(con, query_text = "Tell me about R?", top_k = 5)
 ```
 
-``` r
+```r
 response
 #>    id page_content                                                dist
 #> 1   5 [Home]\nDownload\nCRAN\nR Project...\n...                0.2183
@@ -128,11 +127,11 @@ cat(response$page_content[1])
 #> [Home]\nDownload\nCRAN\nR Project\nAbout R\nLogo\n...
 ```
 
-------------------------------------------------------------------------
+---
 
 ### 3. RAG Chain Querying
 
-``` r
+```r
 rag_chain <- create_rag_chain(
   llm = call_llm,
   vector_database_directory = "documents/my_vectors.duckdb",
@@ -144,7 +143,7 @@ rag_chain <- create_rag_chain(
 response <- rag_chain$invoke("Tell me about R")
 ```
 
-``` r
+```r
 response
 #> $input
 #> [1] "Tell me about R"
@@ -160,11 +159,11 @@ cat(response$answer)
 #> R is a programming language and software environment commonly used for statistical computing and graphics...
 ```
 
-------------------------------------------------------------------------
+---
 
 ## LLM Support
 
-``` r
+```r
 call_llm(
   prompt = "Summarize the capital of France.",
   provider = "groq",
@@ -174,15 +173,13 @@ call_llm(
 )
 ```
 
-------------------------------------------------------------------------
+---
 
 ## 📦 Related Package: [`chatLLM`](https://cran.r-project.org/package=chatLLM)
 
-The [`chatLLM`](https://github.com/knowusuboaky/chatLLM) package (now
-available on CRAN 🎉) offers a modular interface for interacting with
-LLM providers including **OpenAI**, **Groq**, and **Anthropic**.
+The [`chatLLM`](https://github.com/knowusuboaky/chatLLM) package (now available on CRAN 🎉) offers a modular interface for interacting with LLM providers including **OpenAI**, **Groq**, and **Anthropic**.
 
-``` r
+```r
 install.packages("chatLLM")
 ```
 
@@ -194,9 +191,8 @@ Features:
 - 🔌 Native integration with `RAGFlowChainR`
 - 🔐 `.Renviron`-based key management
 
-------------------------------------------------------------------------
+---
 
 ## License
 
-MIT © [Kwadwo Daddy Nyame Owusu
-Boakye](mailto:kwadwo.owusuboakye@outlook.com)
+MIT © [Kwadwo Daddy Nyame Owusu Boakye](mailto:kwadwo.owusuboakye@outlook.com)

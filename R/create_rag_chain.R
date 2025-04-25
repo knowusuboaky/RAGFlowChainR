@@ -84,10 +84,23 @@ embed_openai <- function(
 # ==============================================================================
 #  2) VECTOR DATABASE (DuckDB)
 # ==============================================================================
-connect_vectorstore <- function(db_path = ":memory:", read_only = FALSE) {
-    con <- DBI::dbConnect(duckdb::duckdb(), db_path, read_only = read_only)
-    DBI::dbExecute(con, "INSTALL vss; LOAD vss;")
-    con
+connect_vectorstore <- function(
+    db_path   = ":memory:",
+    read_only = FALSE,
+    load_vss  = identical(Sys.getenv("_R_CHECK_PACKAGE_NAME_"), "")
+) {
+  con <- DBI::dbConnect(duckdb::duckdb(), db_path, read_only = read_only)
+
+  if (load_vss) {
+    try({
+      # load if already installed, otherwise keep going quietly
+      if ("vss" %in% DBI::dbGetQuery(con, "PRAGMA show_extensions()")$name) {
+        DBI::dbExecute(con, "LOAD vss;")
+      }
+    }, silent = TRUE)
+  }
+
+  con
 }
 
 # ==============================================================================
@@ -346,36 +359,37 @@ insert_vectors <- function(
 # ==============================================================================
 #  7) BUILD INDEX & SEARCH
 # ==============================================================================
-build_vector_index <- function(
-        store,
-        type = c("vss", "fts")
-) {
-    con <- if (inherits(store, "DBIConnection")) store else store
-    type <- match.arg(type, several.ok = TRUE)
+build_vector_index <- function(store, type = c("vss", "fts")) {
+  con  <- if (inherits(store, "DBIConnection")) store else store
+  type <- match.arg(type, several.ok = TRUE)
 
-    if ("vss" %in% type) {
-        DBI::dbExecute(con, "SET hnsw_enable_experimental_persistence = true;")
-        DBI::dbExecute(con, "DROP INDEX IF EXISTS idx_vectors_embedding;")
-        DBI::dbExecute(con, "
-            CREATE INDEX idx_vectors_embedding
-            ON vectors
-            USING HNSW(embedding);
-        ")
+  tbl_types <- DBI::dbGetQuery(con, "PRAGMA table_info('vectors')")$type
+  have_vss  <- any(grepl("VECTOR", tbl_types, fixed = TRUE))
+
+  if ("vss" %in% type) {
+    if (!have_vss) {
+      warning("vss extension not available in this store; skipping HNSW index.")
+    } else {
+      DBI::dbExecute(con, "SET hnsw_enable_experimental_persistence = true;")
+      DBI::dbExecute(con, "DROP INDEX IF EXISTS idx_vectors_embedding;")
+      DBI::dbExecute(con, "
+        CREATE INDEX idx_vectors_embedding
+        ON vectors USING HNSW(embedding);")
     }
+  }
 
-    if ("fts" %in% type) {
-        DBI::dbExecute(con, "INSTALL fts; LOAD fts;")
-        DBI::dbExecute(con, "
-            PRAGMA create_fts_index(
-              'vectors',
-              'id',
-              'page_content',
-              overwrite = 1
-            );
-        ")
-    }
+  if ("fts" %in% type) {
+    DBI::dbExecute(con, "INSTALL fts; LOAD fts;")
+    DBI::dbExecute(con, "
+      PRAGMA create_fts_index(
+        'vectors',
+        'id',
+        'page_content',
+        overwrite = 1
+      );")
+  }
 
-    invisible(store)
+  invisible(store)
 }
 
 search_vectors <- function(
