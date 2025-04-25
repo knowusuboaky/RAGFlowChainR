@@ -44,9 +44,27 @@ GitHub (Python):
 ## Installation
 
 ``` r
-if (!requireNamespace("remotes")) install.packages("remotes")
+install.packages("RAGFlowChainR")
+```
+
+------------------------------------------------------------------------
+
+## Development version
+
+To get the latest features or bug fixes, you can install the development
+version of `RAGFlowChainR` from GitHub:
+
+``` r
+# If needed
+install.packages("remotes")
+
 remotes::install_github("knowusuboaky/RAGFlowChainR")
 ```
+
+See the full [function
+reference](https://knowusuboaky.github.io/RAGFlowChainR/reference) or the
+[package website](https://knowusuboaky.github.io/RAGFlowChainR/) for more
+details.
 
 ------------------------------------------------------------------------
 
