@@ -101,7 +101,7 @@ cat(response$content[1])
 ### 2. Vector Store & Semantic Search
 
 ``` r
-con <- create_vectorstore("documents/my_vectors.duckdb", overwrite = TRUE)
+con <- create_vectorstore("tests/testthat/test-data/my_vectors.duckdb", overwrite = TRUE)
 
 docs <- data.frame(head(response))  # reuse from fetch_data()
 
@@ -135,7 +135,7 @@ cat(response$page_content[1])
 ``` r
 rag_chain <- create_rag_chain(
   llm = call_llm,
-  vector_database_directory = "documents/my_vectors.duckdb",
+  vector_database_directory = "tests/testthat/test-data/my_vectors.duckdb",
   method = "DuckDB",
   embedding_function = embed_openai(),
   use_web_search = FALSE
