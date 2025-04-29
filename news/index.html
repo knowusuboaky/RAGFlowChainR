@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">RAGFlowChainR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,7 +32,53 @@
       <small>Source: <a href="https://github.com/knowusuboaky/RAGFlowChainR/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
-  </main></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="ragflowchainr-development-version">RAGFlowChainR (development version)<a class="anchor" aria-label="anchor" href="#ragflowchainr-development-version"></a></h2>
+<ul><li>Wrapped FTS-related tests in <code><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch()</a></code> + <code>skip()</code> to avoid segmentation faults on Fedora-clang during CRAN checks.</li>
+<li>Informative <code>skip()</code> messages added for systems without FTS extension support.</li>
+<li>Ensured all tests pass cleanly on platforms with partial DuckDB extension support.</li>
+<li>Maintained full feature test coverage in interactive/development environments.</li>
+<li>No user-facing changes or exported API modifications.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.1" id="ragflowchainr-011">RAGFlowChainR 0.1.1<a class="anchor" aria-label="anchor" href="#ragflowchainr-011"></a></h2><p class="text-muted">CRAN release: 2025-04-24</p>
+<ul><li><p>Prevented segfaults on CRAN by disabling the experimental <code>vss</code> extension during checks.</p></li>
+<li><p>Fallback to <code>FLOAT[]</code> column type when <code>vss</code> is unavailable, avoiding Fedora-clang binary-extension errors.</p></li>
+<li>
+<p><code><a href="../reference/create_vectorstore.html">create_vectorstore()</a></code> now:</p>
+<ul><li>Skips <code>vss</code> installation/loading under CRAN but retains support in dev environments.</li>
+<li>Returns a persistent DuckDB connection (no longer auto-disconnects).</li>
+</ul></li>
+<li>
+<p><code>insert_vectors()</code>:</p>
+<ul><li>Handles single-column frames safely using <code>drop = FALSE</code>.</li>
+<li>Dynamically switches between <code>array_value()</code> and <code>list_value()</code> based on schema.</li>
+</ul></li>
+<li>
+<p><code>build_vector_index()</code>:</p>
+<ul><li>Skips HNSW index creation when <code>VECTOR[]</code> columns are missing (with a warning).</li>
+</ul></li>
+<li>
+<p>RAG chain integration:</p>
+<ul><li>Safely mirrors <code>vss</code>-guard logic in <code>connect_vectorstore()</code> and <code><a href="../reference/create_rag_chain.html">create_rag_chain()</a></code>.</li>
+</ul></li>
+<li>
+<p>DESCRIPTION and metadata:</p>
+<ul><li>Set minimum required version: <code>duckdb (&gt;= 0.10.0)</code> and <code>testthat (&gt;= 3.0.0)</code>.</li>
+<li>Added <code>Config/testthat/edition: 3</code> for consistent test behavior.</li>
+<li>Tidied Description field by removing unnecessary single quotes around names.</li>
+<li>Expanded common acronyms like <code>HNSW</code>, <code>LLM</code>, etc.</li>
+</ul></li>
+<li>
+<p>Testing improvements:</p>
+<ul><li>Suppressed non-critical test warnings.</li>
+<li>Removed fragile FTS assertions (<code>fts_main</code>).</li>
+<li>Introduced <code>mock_embed()</code> and <code>dummy_embed()</code> to remove dependency on external APIs.</li>
+<li>Skipped RAG-chain integration tests on CRAN and gated test-data downloads.</li>
+</ul></li>
+</ul></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
