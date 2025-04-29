@@ -75,9 +75,16 @@ test_that("build_vector_index succeeds silently (vss/fts)", {
   tmp <- dbConnect(duckdb::duckdb(), ":memory:")
   tryCatch(
     dbExecute(tmp, "INSTALL fts; LOAD fts;"),
-    error = function(e) has_fts <<- FALSE
+    error = function(e) {
+      message("FTS not available: ", conditionMessage(e))
+      has_fts <<- FALSE
+    }
   )
   dbDisconnect(tmp, shutdown = TRUE)
+
+  if (!has_fts) {
+    skip("Skipping FTS test: DuckDB FTS extension not available on this platform.")
+  }
 
   con <- suppressWarnings(create_vectorstore(":memory:", TRUE, 1536))
   insert_vectors(con, data.frame(page_content = "y"), mock_embed)
@@ -88,6 +95,7 @@ test_that("build_vector_index succeeds silently (vss/fts)", {
 
   dbDisconnect(con, shutdown = TRUE)
 })
+
 
 test_that("dummy embeddings round-trip silently", {
   con <- suppressWarnings(create_vectorstore(":memory:", TRUE, 1536))

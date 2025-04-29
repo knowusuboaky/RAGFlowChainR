@@ -1,19 +1,45 @@
-#' @title data_fetcher.R Overview
-#' @description
-#' Provides the `fetch_data()` function, which extracts and structures content from:
+# ------------------------------------------------------------------------------
+#  4) Main fetch_data()
+# ------------------------------------------------------------------------------
+#' Fetch data from local files and websites
+#'
+#' Extracts content and metadata from local documents or websites. Supports:
 #' \itemize{
-#'   \item Local files (PDF, DOCX, PPTX, TXT, HTML)
-#'   \item Crawled websites (with optional BFS crawl depth)
+#'   \item Local files: PDF, DOCX, PPTX, TXT, HTML
+#'   \item Crawled websites: with optional breadth-first crawl depth
 #' }
 #'
-#' The returned data frame includes metadata columns like `title`, `author`, `publishedDate`,
-#' and the main extracted `content`.
+#' The returned data frame includes structured columns such as:
+#' \code{source}, \code{title}, \code{author}, \code{publishedDate}, \code{description}, \code{content}, \code{url}, and \code{source_type}.
 #'
 #' ## Required Packages
 #' \code{install.packages(c("pdftools", "officer", "rvest", "xml2", "dplyr", "stringi", "curl", "httr", "jsonlite", "magrittr"))}
 #'
-#' @note Only `fetch_data()` is exported. Internal functions include `read_local_file()`, `read_website_page()`, and `crawl_links_bfs()`.
-#' @name data_fetcher
+#' @param local_paths A character vector of file paths or directories to scan for documents.
+#' @param website_urls A character vector of website URLs to crawl and extract text from.
+#' @param crawl_depth Integer indicating BFS crawl depth; use \code{NULL} for unlimited depth.
+#'
+#' @return A data frame with extracted metadata and content.
+#'
+#' @note Internal functions used include \code{read_local_file()}, \code{read_website_page()}, and \code{crawl_links_bfs()}.
+#'
+#' @examples
+#' \dontrun{
+#' local_files <- c("tests/testthat/test-data/sprint.pdf",
+#'                  "tests/testthat/test-data/introduction.pptx",
+#'                  "tests/testthat/test-data/overview.txt")
+#' website_urls <- c("https://www.r-project.org")
+#' crawl_depth <- 1
+#'
+#' response <- fetch_data(
+#'   local_paths = local_files,
+#'   website_urls = website_urls,
+#'   crawl_depth = crawl_depth
+#' )
+#' }
+#'
+#' @name fetch_data
+#' @export
 NULL
 
 # Required libraries
@@ -27,6 +53,42 @@ library(stringi)
 library(httr)
 library(jsonlite)
 library(magrittr)
+
+fetch_data <- function(local_paths = NULL, website_urls = NULL, crawl_depth = NULL) {
+  all_dfs <- list()
+
+  if (!is.null(local_paths)) {
+    df_local <- read_local_files(local_paths)
+    if (nrow(df_local)) all_dfs[[length(all_dfs) + 1]] <- df_local
+  }
+
+  if (!is.null(website_urls)) {
+    all_links <- character()
+    for (u in website_urls) {
+      found <- crawl_links_bfs(u, depth = crawl_depth)
+      all_links <- union(all_links, found)
+    }
+    website_list <- lapply(all_links, read_website_page)
+    website_list <- website_list[!sapply(website_list, is.null)]
+    if (length(website_list)) {
+      df_web <- dplyr::bind_rows(website_list)
+      all_dfs[[length(all_dfs) + 1]] <- df_web
+    }
+  }
+
+  if (!length(all_dfs)) {
+    return(data.frame(
+      source = character(), title = character(), author = character(),
+      publishedDate = character(), description = character(), content = character(),
+      url = character(), source_type = character()
+    ))
+  }
+
+  final_df <- dplyr::bind_rows(all_dfs)
+  col_order <- c("source", "title", "author", "publishedDate", "description", "content", "url", "source_type")
+  final_df <- final_df[, col_order, drop = FALSE]
+  final_df
+}
 
 # ------------------------------------------------------------------------------
 #  1) Local file reading
@@ -234,55 +296,4 @@ read_website_page <- function(url) {
         content = raw_text, url = url, source_type = "website",
         stringsAsFactors = FALSE
     )
-}
-
-# ------------------------------------------------------------------------------
-#  4) Main fetch_data()
-# ------------------------------------------------------------------------------
-#' Fetch Data from Local Files and Websites
-#'
-#' Extracts content and metadata from local documents or websites. Supports PDF, DOCX, PPTX, TXT, HTML files
-#' and performs BFS web crawling up to the specified depth.
-#'
-#' @param local_paths A character vector of file paths or directories to scan for documents.
-#' @param website_urls A character vector of website URLs to crawl and extract text from.
-#' @param crawl_depth Integer indicating BFS crawl depth; set to NULL for infinite crawl.
-#'
-#' @return A data frame with the following columns: source, title, author, publishedDate, description, content, url, source_type.
-#'
-#' @export
-fetch_data <- function(local_paths = NULL, website_urls = NULL, crawl_depth = NULL) {
-    all_dfs <- list()
-
-    if (!is.null(local_paths)) {
-        df_local <- read_local_files(local_paths)
-        if (nrow(df_local)) all_dfs[[length(all_dfs) + 1]] <- df_local
-    }
-
-    if (!is.null(website_urls)) {
-        all_links <- character()
-        for (u in website_urls) {
-            found <- crawl_links_bfs(u, depth = crawl_depth)
-            all_links <- union(all_links, found)
-        }
-        website_list <- lapply(all_links, read_website_page)
-        website_list <- website_list[!sapply(website_list, is.null)]
-        if (length(website_list)) {
-            df_web <- dplyr::bind_rows(website_list)
-            all_dfs[[length(all_dfs) + 1]] <- df_web
-        }
-    }
-
-    if (!length(all_dfs)) {
-        return(data.frame(
-            source = character(), title = character(), author = character(),
-            publishedDate = character(), description = character(), content = character(),
-            url = character(), source_type = character()
-        ))
-    }
-
-    final_df <- dplyr::bind_rows(all_dfs)
-    col_order <- c("source", "title", "author", "publishedDate", "description", "content", "url", "source_type")
-    final_df <- final_df[, col_order, drop = FALSE]
-    final_df
 }

@@ -2,36 +2,58 @@
 % Please edit documentation in R/create_vectorstore.R
 \name{create_vectorstore}
 \alias{create_vectorstore}
-\title{create_vectorstore.R — Vector-store utilities}
-\usage{
-create_vectorstore(
-  db_path = ":memory:",
-  overwrite = FALSE,
-  embedding_dim = 1536,
-  load_vss = identical(Sys.getenv("_R_CHECK_PACKAGE_NAME_"), "")
-)
-}
+\title{Create a DuckDB-based vector store}
 \arguments{
-\item{db_path}{Path to the DuckDB file (\"`:memory:`\" for RAM).}
+\item{db_path}{Path to the DuckDB file. Use `":memory:"` to create an in-memory database.}
 
-\item{overwrite}{If `TRUE`, delete any existing file / table.}
+\item{overwrite}{Logical; if `TRUE`, deletes any existing DuckDB file or table.}
 
-\item{embedding_dim}{Dimension of the embeddings stored.}
+\item{embedding_dim}{Integer; the dimensionality of the vector embeddings to store.}
 
-\item{load_vss}{Try to load the experimental `vss` extension?
-Defaults to `TRUE` except during CRAN checks where it is forced `FALSE`.}
+\item{load_vss}{Logical; whether to load the experimental `vss` extension.
+This defaults to `TRUE`, but is forced to `FALSE` during CRAN checks.}
 }
 \value{
-A live `duckdb_connection`. Disconnect manually with
-  `DBI::dbDisconnect(con, shutdown = TRUE)`.
+A live DuckDB connection object. Be sure to manually disconnect with:
+\code{DBI::dbDisconnect(con, shutdown = TRUE)}
 }
 \description{
-Tools to
-• embed text with the OpenAI API
-• create a DuckDB-backed vector store (optionally with the `vss` extension)
-• insert documents with embeddings (handles chunking)
-• build HNSW/FTS indexes and run nearest-neighbour search
+Initializes a DuckDB database connection for storing embedded documents,
+with optional support for the experimental `vss` extension.
 }
 \details{
-Only `create_vectorstore()` is exported; all other helpers are internal.
+This function is part of the vector-store utilities for:
+\itemize{
+  \item Embedding text via the OpenAI API
+  \item Storing and chunking documents in DuckDB
+  \item Building `HNSW` and `FTS` indexes
+  \item Running nearest-neighbour search over vector embeddings
+}
+
+Only \code{create_vectorstore()} is exported; helpers like \code{insert_vectors()}, \code{build_vector_index()},
+and \code{search_vectors()} are internal but designed to be composable.
+}
+\examples{
+\dontrun{
+# Create vector store
+con <- create_vectorstore("tests/testthat/test-data/my_vectors.duckdb", overwrite = TRUE)
+
+# Assume response is output from fetch_data()
+docs <- data.frame(head(response))
+
+# Insert documents with embeddings
+insert_vectors(
+  con = con,
+  df = docs,
+  embed_fun = embed_openai(),
+  chunk_chars = 12000
+)
+
+# Build vector + FTS indexes
+build_vector_index(con, type = c("vss", "fts"))
+
+# Perform vector search
+response <- search_vectors(con, query_text = "Tell me about R?", top_k = 5)
+}
+
 }

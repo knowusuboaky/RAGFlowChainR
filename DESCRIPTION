@@ -1,7 +1,7 @@
 Package: RAGFlowChainR
 Type: Package
 Title: Retrieval-Augmented Generation (RAG) Workflows in R with Local and Web Search
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: person(given = "Kwadwo Daddy Nyame",
                   family = "Owusu Boakye",
                   email = "kwadwo.owusuboakye@outlook.com",

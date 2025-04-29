@@ -1,23 +1,3 @@
-#' create_vectorstore.R — Vector-store utilities
-#'
-#' Tools to
-#' • embed text with the OpenAI API
-#' • create a DuckDB-backed vector store (optionally with the `vss` extension)
-#' • insert documents with embeddings (handles chunking)
-#' • build HNSW/FTS indexes and run nearest-neighbour search
-#'
-#' Only `create_vectorstore()` is exported; all other helpers are internal.
-#' @name create_vectorstore
-NULL
-
-# ───────────────────────────── dependencies ────────────────────────────────
-library(DBI)
-library(dplyr)
-library(duckdb)
-library(httr)
-library(jsonlite)
-library(stringi)
-
 # =============================================================================
 # 1) EMBEDDING
 # =============================================================================
@@ -68,15 +48,65 @@ embed_openai <- function(
 # =============================================================================
 #' Create a DuckDB-based vector store
 #'
-#' @param db_path        Path to the DuckDB file (\"`:memory:`\" for RAM).
-#' @param overwrite      If `TRUE`, delete any existing file / table.
-#' @param embedding_dim  Dimension of the embeddings stored.
-#' @param load_vss       Try to load the experimental `vss` extension?
-#'   Defaults to `TRUE` except during CRAN checks where it is forced `FALSE`.
+#' Initializes a DuckDB database connection for storing embedded documents,
+#' with optional support for the experimental `vss` extension.
 #'
-#' @return A live `duckdb_connection`. Disconnect manually with
-#'   `DBI::dbDisconnect(con, shutdown = TRUE)`.
+#' @param db_path Path to the DuckDB file. Use `":memory:"` to create an in-memory database.
+#' @param overwrite Logical; if `TRUE`, deletes any existing DuckDB file or table.
+#' @param embedding_dim Integer; the dimensionality of the vector embeddings to store.
+#' @param load_vss Logical; whether to load the experimental `vss` extension.
+#'   This defaults to `TRUE`, but is forced to `FALSE` during CRAN checks.
+#'
+#' @return A live DuckDB connection object. Be sure to manually disconnect with:
+#' \code{DBI::dbDisconnect(con, shutdown = TRUE)}
+#'
+#' @details
+#' This function is part of the vector-store utilities for:
+#' \itemize{
+#'   \item Embedding text via the OpenAI API
+#'   \item Storing and chunking documents in DuckDB
+#'   \item Building `HNSW` and `FTS` indexes
+#'   \item Running nearest-neighbour search over vector embeddings
+#' }
+#'
+#' Only \code{create_vectorstore()} is exported; helpers like \code{insert_vectors()}, \code{build_vector_index()},
+#' and \code{search_vectors()} are internal but designed to be composable.
+#'
+#' @examples
+#' \dontrun{
+#' # Create vector store
+#' con <- create_vectorstore("tests/testthat/test-data/my_vectors.duckdb", overwrite = TRUE)
+#'
+#' # Assume response is output from fetch_data()
+#' docs <- data.frame(head(response))
+#'
+#' # Insert documents with embeddings
+#' insert_vectors(
+#'   con = con,
+#'   df = docs,
+#'   embed_fun = embed_openai(),
+#'   chunk_chars = 12000
+#' )
+#'
+#' # Build vector + FTS indexes
+#' build_vector_index(con, type = c("vss", "fts"))
+#'
+#' # Perform vector search
+#' response <- search_vectors(con, query_text = "Tell me about R?", top_k = 5)
+#' }
+#'
+#' @name create_vectorstore
 #' @export
+NULL
+
+# ───────────────────────────── dependencies ────────────────────────────────
+library(DBI)
+library(dplyr)
+library(duckdb)
+library(httr)
+library(jsonlite)
+library(stringi)
+
 create_vectorstore <- function(
     db_path       = ":memory:",
     overwrite     = FALSE,

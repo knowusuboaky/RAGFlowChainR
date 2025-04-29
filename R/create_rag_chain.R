@@ -1,33 +1,3 @@
-#' @title create_rag_chain.R Overview
-#' @description
-#' A refined implementation of a LangChain-style Retrieval-Augmented Generation (RAG) pipeline.
-#' Includes vector search using DuckDB, optional web search using the Tavily API, and a
-#' built-in chat message history.
-#'
-#' This script powers `create_rag_chain()`, the exported entry point for constructing a RAG pipeline.
-#'
-#' ## Features:
-#' - Context-aware reformulation of user questions based on chat history
-#' - Retrieval of relevant chunks via semantic search
-#' - Optional real-time web search using Tavily (if API key is set)
-#' - Works with any LLM function (e.g., OpenAI, Claude)
-#'
-#' ## Required Packages
-#' Install with:
-#' \code{install.packages(c("DBI", "duckdb", "httr", "jsonlite", "stringi", "dplyr"))}
-#'
-#' @note Only `create_rag_chain()` is exported.
-#' @name create_rag_chain
-NULL
-
-# Required libraries
-library(DBI)
-library(duckdb)
-library(httr)
-library(jsonlite)
-library(stringi)
-library(dplyr)
-
 # ==============================================================================
 #  1) EMBEDDING FUNCTIONS
 # ==============================================================================
@@ -441,32 +411,72 @@ search_vectors <- function(
 # ==============================================================================
 #  8) RAG CHAIN IMPLEMENTATION
 # ==============================================================================
-
 #' Create a Retrieval-Augmented Generation (RAG) Chain
 #'
 #' Creates a LangChain-style RAG chain using DuckDB for vector store operations, optional Tavily API for web search,
 #' and in-memory message history for conversational context.
 #'
 #' @param llm A function that takes a prompt and returns a response (e.g. a call to OpenAI or Claude).
-#' @param vector_database_directory Path to DuckDB database file.
-#' @param method Currently only "DuckDB" is supported.
-#' @param embedding_function A function for embedding text. Defaults to `embed_openai()`.
-#' @param system_prompt Optional prompt with placeholders \code{{chat_history}}, \code{{input}}, \code{{context}}
-#' @param chat_history_prompt Prompt used to rephrase user questions based on prior context.
-#' @param tavily_search API key for Tavily (or NULL to disable web search).
-#' @param embedding_dim Dimensionality of embedding vectors (default 1536).
-#' @param use_web_search Logical, whether to include web results from Tavily (default TRUE).
+#' @param vector_database_directory Path to the DuckDB database file.
+#' @param method Retrieval method backend. Currently only `"DuckDB"` is supported.
+#' @param embedding_function A function to embed text. Defaults to \code{embed_openai()}.
+#' @param system_prompt Optional prompt with placeholders \code{{chat_history}}, \code{{input}}, \code{{context}}.
+#' @param chat_history_prompt Prompt used to rephrase follow-up questions using prior conversation history.
+#' @param tavily_search Tavily API key (set to \code{NULL} to disable web search).
+#' @param embedding_dim Integer; embedding vector dimension. Defaults to \code{1536}.
+#' @param use_web_search Logical; whether to include web results from Tavily. Defaults to \code{TRUE}.
 #'
 #' @return A list of utility functions:
 #' \itemize{
-#'   \item \code{invoke(text)} — Performs full context retrieval + LLM response
-#'   \item \code{custom_invoke(text)} — Retrieves context only, no LLM response
-#'   \item \code{get_session_history()} — Returns full chat history
-#'   \item \code{clear_history()} — Clears the chat memory
-#'   \item \code{disconnect()} — Closes DuckDB connection
+#'   \item \code{invoke(text)} — Performs full context retrieval and LLM response
+#'   \item \code{custom_invoke(text)} — Retrieves context only (no LLM call)
+#'   \item \code{get_session_history()} — Returns complete conversation history
+#'   \item \code{clear_history()} — Clears in-memory chat history
+#'   \item \code{disconnect()} — Closes the underlying DuckDB connection
 #' }
 #'
+#' @examples
+#' \dontrun{
+#' rag_chain <- create_rag_chain(
+#'   llm = call_llm,
+#'   vector_database_directory = "tests/testthat/test-data/my_vectors.duckdb",
+#'   method = "DuckDB",
+#'   embedding_function = embed_openai(),
+#'   use_web_search = FALSE
+#' )
+#'
+#' response <- rag_chain$invoke("Tell me about R")
+#' }
+#'
+#' @name create_rag_chain
+#' @title create_rag_chain.R Overview
+#' @description
+#' A refined implementation of a LangChain-style Retrieval-Augmented Generation (RAG) pipeline.
+#' Includes vector search using DuckDB, optional web search using the Tavily API, and a
+#' built-in chat message history.
+#'
+#' This function powers `create_rag_chain()`, the exported entry point for constructing a full RAG pipeline.
+#'
+#' ## Features:
+#' - Context-aware reformulation of user queries
+#' - Semantic chunk retrieval using DuckDB
+#' - Optional real-time web search (Tavily)
+#' - Compatible with any LLM function (OpenAI, Claude, etc.)
+#'
+#' ## Required Packages
+#' \code{install.packages(c("DBI", "duckdb", "httr", "jsonlite", "stringi", "dplyr"))}
+#'
+#' @note Only \code{create_rag_chain()} is exported. Helper functions are internal.
 #' @export
+NULL
+
+# Required libraries
+library(DBI)
+library(duckdb)
+library(httr)
+library(jsonlite)
+library(stringi)
+library(dplyr)
 
 create_rag_chain <- function(
         llm,

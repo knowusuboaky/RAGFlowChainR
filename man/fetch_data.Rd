@@ -2,21 +2,47 @@
 % Please edit documentation in R/data_fetcher.R
 \name{fetch_data}
 \alias{fetch_data}
-\title{Fetch Data from Local Files and Websites}
-\usage{
-fetch_data(local_paths = NULL, website_urls = NULL, crawl_depth = NULL)
-}
+\title{Fetch data from local files and websites}
 \arguments{
 \item{local_paths}{A character vector of file paths or directories to scan for documents.}
 
 \item{website_urls}{A character vector of website URLs to crawl and extract text from.}
 
-\item{crawl_depth}{Integer indicating BFS crawl depth; set to NULL for infinite crawl.}
+\item{crawl_depth}{Integer indicating BFS crawl depth; use \code{NULL} for unlimited depth.}
 }
 \value{
-A data frame with the following columns: source, title, author, publishedDate, description, content, url, source_type.
+A data frame with extracted metadata and content.
 }
 \description{
-Extracts content and metadata from local documents or websites. Supports PDF, DOCX, PPTX, TXT, HTML files
-and performs BFS web crawling up to the specified depth.
+Extracts content and metadata from local documents or websites. Supports:
+\itemize{
+  \item Local files: PDF, DOCX, PPTX, TXT, HTML
+  \item Crawled websites: with optional breadth-first crawl depth
+}
+}
+\details{
+The returned data frame includes structured columns such as:
+\code{source}, \code{title}, \code{author}, \code{publishedDate}, \code{description}, \code{content}, \code{url}, and \code{source_type}.
+
+## Required Packages
+\code{install.packages(c("pdftools", "officer", "rvest", "xml2", "dplyr", "stringi", "curl", "httr", "jsonlite", "magrittr"))}
+}
+\note{
+Internal functions used include \code{read_local_file()}, \code{read_website_page()}, and \code{crawl_links_bfs()}.
+}
+\examples{
+\dontrun{
+local_files <- c("tests/testthat/test-data/sprint.pdf",
+                 "tests/testthat/test-data/introduction.pptx",
+                 "tests/testthat/test-data/overview.txt")
+website_urls <- c("https://www.r-project.org")
+crawl_depth <- 1
+
+response <- fetch_data(
+  local_paths = local_files,
+  website_urls = website_urls,
+  crawl_depth = crawl_depth
+)
+}
+
 }
