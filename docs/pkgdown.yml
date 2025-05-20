@@ -2,7 +2,7 @@ pandoc: '3.2'
 pkgdown: 2.1.1
 pkgdown_sha: ~
 articles: {}
-last_built: 2025-04-29T13:26Z
+last_built: 2025-05-20T16:55Z
 urls:
   reference: https://knowusuboaky.github.io/RAGFlowChainR/reference
   article: https://knowusuboaky.github.io/RAGFlowChainR/articles
