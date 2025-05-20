@@ -200,7 +200,7 @@ call_llm(
 
 The [`chatLLM`](https://github.com/knowusuboaky/chatLLM) package (now
 available on CRAN 🎉) offers a modular interface for interacting with
-LLM providers including **OpenAI**, **Groq**, and **Anthropic**.
+LLM providers including **OpenAI**, **Groq**, **Anthropic**, , **DeepSeek**, **DashScope**, and **GitHub Models**.
 
 ``` r
 install.packages("chatLLM")
@@ -208,9 +208,13 @@ install.packages("chatLLM")
 
 Features:
 
-- 🔁 Seamless provider switching (`openai`, `groq`, `anthropic`)
-- ✍️ Prompt + system message templating
-- 💬 Multi-message chat sessions
+- 🔄 **Uniform API** across providers
+- 🗣 **Multi‑message context** (system/user/assistant roles)
+- 🔁 **Retries & backoff** with clear timeout handling
+- 🔈 **Verbose control** (`verbose = TRUE/FALSE`)
+- ⚙️ **Discover models** via `list_models()`
+- 🏗 **Factory interface** for repeated calls
+- 🌐 **Custom endpoint** override and advanced tuning
 - 🔌 Native integration with `RAGFlowChainR`
 - 🔐 `.Renviron`-based key management
 

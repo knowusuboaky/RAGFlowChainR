@@ -205,14 +205,19 @@ GitHub (Python): <a href="https://github.com/knowusuboaky/RAGFlowChain" class="e
 <h2 id="id_-related-package-chatllm">📦 Related Package: <a href="https://cran.r-project.org/package=chatLLM" class="external-link"><code>chatLLM</code></a>
 <a class="anchor" aria-label="anchor" href="#id_-related-package-chatllm"></a>
 </h2>
-<p>The <a href="https://github.com/knowusuboaky/chatLLM" class="external-link"><code>chatLLM</code></a> package (now available on CRAN 🎉) offers a modular interface for interacting with LLM providers including <strong>OpenAI</strong>, <strong>Groq</strong>, and <strong>Anthropic</strong>.</p>
+<p>The <a href="https://github.com/knowusuboaky/chatLLM" class="external-link"><code>chatLLM</code></a> package (now available on CRAN 🎉) offers a modular interface for interacting with LLM providers including <strong>OpenAI</strong>, <strong>Groq</strong>, <strong>Anthropic</strong>, , <strong>DeepSeek</strong>, <strong>DashScope</strong>, and <strong>GitHub Models</strong>.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"chatLLM"</span><span class="op">)</span></span></code></pre></div>
 <p>Features:</p>
 <ul>
-<li>🔁 Seamless provider switching (<code>openai</code>, <code>groq</code>, <code>anthropic</code>)</li>
-<li>✍️ Prompt + system message templating</li>
-<li>💬 Multi-message chat sessions</li>
+<li>🔄 <strong>Uniform API</strong> across providers</li>
+<li>🗣 <strong>Multi‑message context</strong> (system/user/assistant roles)</li>
+<li>🔁 <strong>Retries &amp; backoff</strong> with clear timeout handling</li>
+<li>🔈 <strong>Verbose control</strong> (<code>verbose = TRUE/FALSE</code>)</li>
+<li>⚙️ <strong>Discover models</strong> via <code>list_models()</code>
+</li>
+<li>🏗 <strong>Factory interface</strong> for repeated calls</li>
+<li>🌐 <strong>Custom endpoint</strong> override and advanced tuning</li>
 <li>🔌 Native integration with <code>RAGFlowChainR</code>
 </li>
 <li>🔐 <code>.Renviron</code>-based key management</li>
