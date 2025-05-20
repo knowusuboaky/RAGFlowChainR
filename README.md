@@ -200,7 +200,7 @@ call_llm(
 
 The [`chatLLM`](https://github.com/knowusuboaky/chatLLM) package (now
 available on CRAN 🎉) offers a modular interface for interacting with
-LLM providers including **OpenAI**, **Groq**, **Anthropic**, , **DeepSeek**, **DashScope**, and **GitHub Models**.
+LLM providers including **OpenAI**, **Groq**, **Anthropic**, **DeepSeek**, **DashScope**, and **GitHub Models**.
 
 ``` r
 install.packages("chatLLM")
