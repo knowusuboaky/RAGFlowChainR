@@ -28,6 +28,13 @@ embed_openai(
   embedding_dim = 1536
 )
 
+create_vectorstore(
+  db_path = ":memory:",
+  overwrite = FALSE,
+  embedding_dim = 1536,
+  load_vss = identical(Sys.getenv("_R_CHECK_PACKAGE_NAME_"), "")
+)
+
 insert_vectors(
   con,
   df,
@@ -74,6 +81,20 @@ search_vectors(
 
   Integer; the dimensionality of the vector embeddings to store.
 
+- db_path:
+
+  Path to the DuckDB file. Use \`":memory:"\` to create an in-memory
+  database.
+
+- overwrite:
+
+  Logical; if \`TRUE\`, deletes any existing DuckDB file or table.
+
+- load_vss:
+
+  Logical; whether to load the experimental \`vss\` extension. This
+  defaults to \`TRUE\`, but is forced to \`FALSE\` during CRAN checks.
+
 - con:
 
   Active DuckDB DBI connection.
@@ -105,20 +126,6 @@ search_vectors(
 - top_k:
 
   Number of nearest matches to return.
-
-- db_path:
-
-  Path to the DuckDB file. Use \`":memory:"\` to create an in-memory
-  database.
-
-- overwrite:
-
-  Logical; if \`TRUE\`, deletes any existing DuckDB file or table.
-
-- load_vss:
-
-  Logical; whether to load the experimental \`vss\` extension. This
-  defaults to \`TRUE\`, but is forced to \`FALSE\` during CRAN checks.
 
 ## Value
 

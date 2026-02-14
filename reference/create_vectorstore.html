@@ -85,6 +85,13 @@ and returns the nearest matches.</p>
 <span>  embedding_dim <span class="op">=</span> <span class="fl">1536</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="fu">create_vectorstore</span><span class="op">(</span></span>
+<span>  db_path <span class="op">=</span> <span class="st">":memory:"</span>,</span>
+<span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  embedding_dim <span class="op">=</span> <span class="fl">1536</span>,</span>
+<span>  load_vss <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"_R_CHECK_PACKAGE_NAME_"</span><span class="op">)</span>, <span class="st">""</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu">insert_vectors</span><span class="op">(</span></span>
 <span>  <span class="va">con</span>,</span>
 <span>  <span class="va">df</span>,</span>
@@ -132,6 +139,19 @@ and returns the nearest matches.</p>
 <dd><p>Integer; the dimensionality of the vector embeddings to store.</p></dd>
 
 
+<dt id="arg-db-path">db_path<a class="anchor" aria-label="anchor" href="#arg-db-path"></a></dt>
+<dd><p>Path to the DuckDB file. Use `":memory:"` to create an in-memory database.</p></dd>
+
+
+<dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
+<dd><p>Logical; if `TRUE`, deletes any existing DuckDB file or table.</p></dd>
+
+
+<dt id="arg-load-vss">load_vss<a class="anchor" aria-label="anchor" href="#arg-load-vss"></a></dt>
+<dd><p>Logical; whether to load the experimental `vss` extension.
+This defaults to `TRUE`, but is forced to `FALSE` during CRAN checks.</p></dd>
+
+
 <dt id="arg-con">con<a class="anchor" aria-label="anchor" href="#arg-con"></a></dt>
 <dd><p>Active DuckDB DBI connection.</p></dd>
 
@@ -162,19 +182,6 @@ and returns the nearest matches.</p>
 
 <dt id="arg-top-k">top_k<a class="anchor" aria-label="anchor" href="#arg-top-k"></a></dt>
 <dd><p>Number of nearest matches to return.</p></dd>
-
-
-<dt id="arg-db-path">db_path<a class="anchor" aria-label="anchor" href="#arg-db-path"></a></dt>
-<dd><p>Path to the DuckDB file. Use `":memory:"` to create an in-memory database.</p></dd>
-
-
-<dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
-<dd><p>Logical; if `TRUE`, deletes any existing DuckDB file or table.</p></dd>
-
-
-<dt id="arg-load-vss">load_vss<a class="anchor" aria-label="anchor" href="#arg-load-vss"></a></dt>
-<dd><p>Logical; whether to load the experimental `vss` extension.
-This defaults to `TRUE`, but is forced to `FALSE` during CRAN checks.</p></dd>
 
 </dl></div>
     <div class="section level2">
