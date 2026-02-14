@@ -17,6 +17,13 @@ embed_openai(
   embedding_dim = 1536
 )
 
+create_vectorstore(
+  db_path = ":memory:",
+  overwrite = FALSE,
+  embedding_dim = 1536,
+  load_vss = identical(Sys.getenv("_R_CHECK_PACKAGE_NAME_"), "")
+)
+
 insert_vectors(
   con,
   df,
@@ -48,6 +55,13 @@ search_vectors(
 
 \item{embedding_dim}{Integer; the dimensionality of the vector embeddings to store.}
 
+\item{db_path}{Path to the DuckDB file. Use `":memory:"` to create an in-memory database.}
+
+\item{overwrite}{Logical; if `TRUE`, deletes any existing DuckDB file or table.}
+
+\item{load_vss}{Logical; whether to load the experimental `vss` extension.
+This defaults to `TRUE`, but is forced to `FALSE` during CRAN checks.}
+
 \item{con}{Active DuckDB DBI connection.}
 
 \item{df}{Data frame containing `page_content` (or `content`) text.}
@@ -63,13 +77,6 @@ search_vectors(
 \item{query_text}{Query text to embed and search.}
 
 \item{top_k}{Number of nearest matches to return.}
-
-\item{db_path}{Path to the DuckDB file. Use `":memory:"` to create an in-memory database.}
-
-\item{overwrite}{Logical; if `TRUE`, deletes any existing DuckDB file or table.}
-
-\item{load_vss}{Logical; whether to load the experimental `vss` extension.
-This defaults to `TRUE`, but is forced to `FALSE` during CRAN checks.}
 }
 \value{
 For character input, a numeric matrix of embeddings. For data-frame

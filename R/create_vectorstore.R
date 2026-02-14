@@ -112,18 +112,7 @@ embed_openai <- function(
 #' response <- search_vectors(con, query_text = "Tell me about R?", top_k = 5)
 #' }
 #'
-#' @name create_vectorstore
 #' @export
-NULL
-
-# ───────────────────────────── dependencies ────────────────────────────────
-library(DBI)
-library(dplyr)
-library(duckdb)
-library(httr)
-library(jsonlite)
-library(stringi)
-
 create_vectorstore <- function(
     db_path       = ":memory:",
     overwrite     = FALSE,

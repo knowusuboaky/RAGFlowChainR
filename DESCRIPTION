@@ -39,6 +39,6 @@ Suggests:
     magrittr,
     roxygen2,
     knitr,
-    rmarkdown
-VignetteBuilder: knitr
+    rmarkdown,
+    VectrixDB
 Config/testthat/edition: 3
