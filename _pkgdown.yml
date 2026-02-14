@@ -2,3 +2,17 @@ url: https://knowusuboaky.github.io/RAGFlowChainR/
 template:
   bootstrap: 5
 
+articles:
+  - title: "Requires Embedding ML"
+    navbar: "Backends"
+    contents:
+      - duckdb-backend
+      - qdrant-backend
+      - pinecone-backend
+      - weaviate-backend
+      - elasticsearch-backend
+  - title: "Doesnt Require Embedding ML"
+    navbar: "Backends"
+    contents:
+      - vectrixdb-backend
+

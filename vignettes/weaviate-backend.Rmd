@@ -1,0 +1,65 @@
+---
+title: "RAG with Weaviate Backend"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{RAG with Weaviate Backend}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+This vignette shows how to query Weaviate using the `Weaviate` method in
+`RAGFlowChainR`.
+
+## 1) Load packages
+
+```{r}
+library(RAGFlowChainR)
+```
+
+## 2) Configure Weaviate target
+
+```{r}
+# Optional if your Weaviate deployment requires token auth
+Sys.setenv(WEAVIATE_API_KEY = "your-weaviate-api-key")
+
+# Format: "https://weaviate-host|ClassName"
+weaviate_target <- "https://your-weaviate-host|Document"
+```
+
+## 3) Create the RAG chain
+
+```{r}
+my_llm <- function(prompt) {
+  "Mock answer from LLM."
+}
+
+rag_chain <- create_rag_chain(
+  llm = my_llm,
+  vector_database_directory = weaviate_target,
+  method = "Weaviate",
+  embedding_function = embed_openai(model = "text-embedding-3-small"),
+  embedding_dim = 1536,
+  use_web_search = FALSE
+)
+```
+
+## 4) Query
+
+```{r}
+result <- rag_chain$invoke("Summarize the most relevant Weaviate documents.")
+result$answer
+result$documents
+```
+
+## Notes
+
+- Your Weaviate class should include text fields such as `page_content`, `text`, or `content`.
+- Ensure query embeddings use the same vector setup used during ingestion.

@@ -55,6 +55,14 @@ library(jsonlite)
 library(magrittr)
 
 fetch_data <- function(local_paths = NULL, website_urls = NULL, crawl_depth = NULL) {
+  if (!is.null(crawl_depth)) {
+    if (length(crawl_depth) != 1L || is.na(crawl_depth) ||
+        !is.numeric(crawl_depth) || crawl_depth < 0 || crawl_depth %% 1 != 0) {
+      stop("`crawl_depth` must be NULL or a single non-negative integer.", call. = FALSE)
+    }
+    crawl_depth <- as.integer(crawl_depth)
+  }
+
   all_dfs <- list()
 
   if (!is.null(local_paths)) {
@@ -237,6 +245,14 @@ read_local_files <- function(paths) {
 #  2) BFS Link Crawl with optional numeric depth or infinite if depth=NULL
 # ------------------------------------------------------------------------------
 crawl_links_bfs <- function(start_url, depth = NULL) {
+    if (!is.null(depth)) {
+        if (length(depth) != 1L || is.na(depth) ||
+            !is.numeric(depth) || depth < 0 || depth %% 1 != 0) {
+            stop("`crawl_depth` must be NULL or a single non-negative integer.", call. = FALSE)
+        }
+        depth <- as.integer(depth)
+    }
+
     visited <- character()
     queue <- list(list(url = start_url, d = 0L))
     main_host <- tryCatch(curl::curl_parse_url(start_url)$host, error = function(e) "")
@@ -257,18 +273,18 @@ crawl_links_bfs <- function(start_url, depth = NULL) {
         links <- sub("#.*$", "", links)
         links <- unique(links)
 
-        abs_links <- sapply(links, function(x) {
+        abs_links <- vapply(links, function(x) {
             tryCatch(xml2::url_absolute(x, cur_url), error = function(e) x)
-        }, USE.NAMES = FALSE)
+        }, FUN.VALUE = character(1), USE.NAMES = FALSE)
 
-        keep <- sapply(abs_links, function(x) {
+        keep <- vapply(abs_links, function(x) {
             tryCatch(curl::curl_parse_url(x)$host, error = function(e) "") == main_host
-        })
+        }, FUN.VALUE = logical(1), USE.NAMES = FALSE)
         abs_links <- abs_links[keep]
-        discovered <- union(discovered, abs_links)
 
         can_go_deeper <- is.null(depth) || (cur_d < depth)
         if (can_go_deeper) {
+            discovered <- union(discovered, abs_links)
             new_links <- setdiff(abs_links, visited)
             for (lnk in new_links) {
                 queue[[length(queue) + 1]] <- list(url = lnk, d = cur_d + 1L)
@@ -276,7 +292,7 @@ crawl_links_bfs <- function(start_url, depth = NULL) {
         }
     }
 
-    c(start_url, discovered)
+    unique(c(start_url, discovered))
 }
 
 # ------------------------------------------------------------------------------

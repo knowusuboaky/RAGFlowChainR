@@ -1,0 +1,90 @@
+---
+title: "RAG with VectrixDB Backend"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{RAG with VectrixDB Backend}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+This vignette shows how to use `VectrixDB` as the retrieval backend in
+`RAGFlowChainR`.
+
+## 1) Install and load packages
+
+```{r}
+# install.packages("remotes")
+# remotes::install_github("knowusuboaky/vectrixdb-r")
+
+library(RAGFlowChainR)
+library(VectrixDB)
+```
+
+## 2) Create a VectrixDB collection and add documents
+
+```{r}
+store_path <- tempfile("vectrix_store_")
+dir.create(store_path, recursive = TRUE, showWarnings = FALSE)
+
+db <- VectrixDB::vectrix_open(name = "default", path = store_path)
+
+db$add(
+  texts = c(
+    "R is widely used for statistics and data analysis.",
+    "VectrixDB is a lightweight vector database implemented in R.",
+    "RAGFlowChainR can retrieve context before calling the LLM."
+  ),
+  metadata = list(
+    list(source = "doc_1"),
+    list(source = "doc_2"),
+    list(source = "doc_3")
+  )
+)
+
+db$close()
+```
+
+## 3) Create a RAG chain with method = "VectrixDB"
+
+```{r}
+mock_llm <- function(prompt) {
+  "This is a mock answer from the LLM."
+}
+
+rag_chain <- create_rag_chain(
+  llm = mock_llm,
+  vector_database_directory = store_path,
+  method = "VectrixDB",
+  use_web_search = FALSE
+)
+```
+
+## 4) Query the chain
+
+```{r}
+result <- rag_chain$invoke("What is VectrixDB?")
+
+result$answer
+result$documents
+```
+
+## 5) Cleanup
+
+```{r}
+rag_chain$disconnect()
+unlink(store_path, recursive = TRUE)
+```
+
+## Notes
+
+- `create_rag_chain(method = "VectrixDB")` requires package `VectrixDB`.
+- If `VectrixDB` is not installed, `create_rag_chain()` raises a clear error with installation steps.
+- `vector_database_directory` can point to a Vectrix root directory, collection directory, or collection name.

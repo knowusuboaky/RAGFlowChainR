@@ -1,10 +1,40 @@
 # RAGFlowChainR (development version)
 
+* No changes yet.
+
+# RAGFlowChainR 0.1.4
+
+* Added four new retrieval backends in `create_rag_chain()`:
+  * `Qdrant`
+  * `Pinecone`
+  * `Weaviate`
+  * `Elasticsearch`
+* Expanded backend routing and parsing in `create_rag_chain()` / `perform_web_search()` to support:
+  * Local backends: `DuckDB`, `VectrixDB`
+  * Remote backends: `Qdrant`, `Pinecone`, `Weaviate`, `Elasticsearch`
+* Added backend adapter tests for all new methods and kept existing `DuckDB`/`VectrixDB` coverage.
+* Added backend-focused vignettes:
+  * `duckdb-backend.Rmd`
+  * `vectrixdb-backend.Rmd`
+  * `qdrant-backend.Rmd`
+  * `pinecone-backend.Rmd`
+  * `weaviate-backend.Rmd`
+  * `elasticsearch-backend.Rmd`
+* Updated `_pkgdown.yml` backend articles grouping:
+  * `Requires Embedding ML`
+  * `Doesnt Require Embedding ML`
+* CI/workflow improvements:
+  * Added `.github/workflows/R-CMD-check.yaml`
+  * Added `.github/workflows/rmd-check.yaml`
+  * Updated `pkgdown.yaml` to run on `main` and deploy with clean pages output.
+* README updates:
+  * Streamlined README content and moved detailed backend walkthroughs to vignettes.
+  * Added backend guide links for faster navigation.
+
 * Wrapped FTS-related tests in `tryCatch()` + `skip()` to avoid segmentation faults on Fedora-clang during CRAN checks.
 * Informative `skip()` messages added for systems without FTS extension support.
 * Ensured all tests pass cleanly on platforms with partial DuckDB extension support.
 * Maintained full feature test coverage in interactive/development environments.
-* No user-facing changes or exported API modifications.
 
 # RAGFlowChainR 0.1.1
 

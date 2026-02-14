@@ -1,7 +1,16 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
+^README\.Rmd$
+^README\.html$
 ^_pkgdown\.yml$
+^\.github$
 ^docs$
 ^pkgdown$
-^\.github$
+^pkgdown/.*$
+^check$
+^check/.*$
+^.*\.Rcheck$
+^.*\.tar\.gz$
+^\.Rhistory$
+^\.RData$
 ^LICENSE\.md$

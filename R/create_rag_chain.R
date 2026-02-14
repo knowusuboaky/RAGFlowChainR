@@ -73,6 +73,381 @@ connect_vectorstore <- function(
   con
 }
 
+# Optional backend helpers
+vectrixdb_is_available <- function() {
+    requireNamespace("VectrixDB", quietly = TRUE)
+}
+
+vectrixdb_install_message <- function() {
+    paste(
+        "method = 'VectrixDB' requires package 'VectrixDB'.",
+        "Use install.packages('remotes') (if needed), then",
+        "remotes::install_github('knowusuboaky/vectrixdb-r').",
+        sep = " "
+    )
+}
+
+# Optional backend: VectrixDB
+connect_vectrix_store <- function(vector_database_directory) {
+    if (!vectrixdb_is_available()) {
+        stop(vectrixdb_install_message(), call. = FALSE)
+    }
+
+    if (is.null(vector_database_directory) || !nzchar(vector_database_directory)) {
+        stop("For method = 'VectrixDB', `vector_database_directory` must be provided.", call. = FALSE)
+    }
+
+    p <- normalizePath(vector_database_directory, winslash = "/", mustWork = FALSE)
+
+    if (dir.exists(p)) {
+        # Collection directory (contains collection.db / vector_index.rds)
+        if (file.exists(file.path(p, "collection.db")) || file.exists(file.path(p, "vector_index.rds"))) {
+            return(VectrixDB::vectrix_open(name = basename(p), path = dirname(p)))
+        }
+        # Root directory (contains _vectrixdb.db or collection folders)
+        return(VectrixDB::vectrix_open(name = "default", path = p))
+    }
+
+    if (file.exists(p)) {
+        b <- basename(p)
+        if (identical(b, "collection.db") || identical(b, "vector_index.rds")) {
+            collection_dir <- dirname(p)
+            return(VectrixDB::vectrix_open(name = basename(collection_dir), path = dirname(collection_dir)))
+        }
+        if (identical(b, "_vectrixdb.db")) {
+            return(VectrixDB::vectrix_open(name = "default", path = dirname(p)))
+        }
+        stop(
+            "For method = 'VectrixDB', provide a collection directory, root directory, ",
+            "or known VectrixDB file path (_vectrixdb.db / collection.db / vector_index.rds).",
+            call. = FALSE
+        )
+    }
+
+    # If it looks like a name (not a path), open default root path.
+    if (!grepl("[/\\\\]", vector_database_directory)) {
+        return(VectrixDB::vectrix_open(name = vector_database_directory, path = "./vectrixdb_data"))
+    }
+
+    stop(
+        "VectrixDB location not found: ", vector_database_directory,
+        ". Provide an existing collection directory/root path, or a collection name.",
+        call. = FALSE
+    )
+}
+
+search_vectrix <- function(vdb, query_text, top_k = 5, mode = "hybrid") {
+    results <- vdb$search(query = query_text, limit = top_k, mode = mode)
+    items <- or_null(results$items, list())
+
+    if (!length(items)) {
+        return(empty_vector_result())
+    }
+
+    data.frame(
+        id = vapply(items, function(it) as.character(or_null(it$id, "")), character(1)),
+        page_content = vapply(items, function(it) as.character(or_null(it$text, "")), character(1)),
+        score = vapply(items, function(it) as.numeric(or_null(it$score, NA_real_)), numeric(1)),
+        metadata = I(lapply(items, function(it) or_null(it$metadata, list()))),
+        stringsAsFactors = FALSE
+    )
+}
+
+or_null <- function(a, b) {
+    if (!is.null(a)) a else b
+}
+
+empty_vector_result <- function() {
+    data.frame(
+        id = character(0),
+        page_content = character(0),
+        score = numeric(0),
+        metadata = I(list()),
+        stringsAsFactors = FALSE
+    )
+}
+
+extract_text_field <- function(x) {
+    if (!is.list(x)) {
+        return(as.character(or_null(x, "")))
+    }
+    for (k in c("page_content", "text", "content", "document", "chunk")) {
+        val <- x[[k]]
+        if (!is.null(val) && nzchar(as.character(val))) {
+            return(as.character(val))
+        }
+    }
+    ""
+}
+
+embed_query_vector <- function(query_text, embed_fun, embedding_dim) {
+    q_emb <- embed_fun(query_text)
+    q_vec <- if (is.matrix(q_emb)) as.numeric(q_emb[1, ]) else as.numeric(q_emb)
+    if (length(q_vec) != embedding_dim) {
+        stop(sprintf(
+            "Query embedding dimension is %d, but embedding_dim=%d. Mismatch.",
+            length(q_vec), embedding_dim
+        ), call. = FALSE)
+    }
+    storage.mode(q_vec) <- "double"
+    q_vec
+}
+
+parse_remote_target <- function(target, default_name = "default", default_extra = NULL) {
+    if (is.null(target) || !nzchar(target)) {
+        stop("`vector_database_directory` must be a non-empty string.", call. = FALSE)
+    }
+    parts <- strsplit(target, "|", fixed = TRUE)[[1]]
+    parts <- trimws(parts)
+    if (!length(parts) || !nzchar(parts[1])) {
+        stop("Provide a backend target like 'https://host|resource'.", call. = FALSE)
+    }
+
+    base_url <- sub("/+$", "", parts[1])
+    if (!grepl("^https?://", base_url)) {
+        stop("Remote backends require an HTTP/HTTPS base URL in `vector_database_directory`.", call. = FALSE)
+    }
+
+    name <- if (length(parts) >= 2 && nzchar(parts[2])) parts[2] else default_name
+    extra <- if (length(parts) >= 3 && nzchar(parts[3])) parts[3] else default_extra
+
+    list(base_url = base_url, name = name, extra = extra)
+}
+
+http_json_post <- function(url, body, headers = list(), timeout_secs = 60) {
+    req_headers <- c(`Content-Type` = "application/json", headers)
+    res <- httr::POST(
+        url = url,
+        encode = "json",
+        body = body,
+        httr::add_headers(.headers = req_headers),
+        httr::timeout(timeout_secs)
+    )
+    if (httr::http_error(res)) {
+        stop(
+            "Backend API error [", url, "]: ",
+            httr::content(res, "text", encoding = "UTF-8"),
+            call. = FALSE
+        )
+    }
+    httr::content(res, "parsed", simplifyVector = FALSE)
+}
+
+connect_qdrant_store <- function(vector_database_directory) {
+    cfg <- parse_remote_target(
+        vector_database_directory,
+        default_name = Sys.getenv("QDRANT_COLLECTION", "default")
+    )
+    cfg$api_key <- Sys.getenv("QDRANT_API_KEY")
+    cfg
+}
+
+search_qdrant <- function(store, query_text, top_k = 5, embed_fun = embed_openai(), embedding_dim = 1536) {
+    q_vec <- embed_query_vector(query_text, embed_fun, embedding_dim)
+    headers <- list()
+    if (nzchar(or_null(store$api_key, ""))) {
+        headers[["api-key"]] <- store$api_key
+    }
+    url <- sprintf(
+        "%s/collections/%s/points/search",
+        store$base_url,
+        utils::URLencode(store$name, reserved = TRUE)
+    )
+    parsed <- http_json_post(
+        url = url,
+        body = list(
+            vector = as.numeric(q_vec),
+            limit = as.integer(top_k),
+            with_payload = TRUE,
+            with_vector = FALSE
+        ),
+        headers = headers
+    )
+
+    hits <- or_null(parsed$result, list())
+    if (!length(hits)) {
+        return(empty_vector_result())
+    }
+
+    data.frame(
+        id = vapply(hits, function(h) as.character(or_null(h$id, "")), character(1)),
+        page_content = vapply(hits, function(h) extract_text_field(or_null(h$payload, list())), character(1)),
+        score = vapply(hits, function(h) as.numeric(or_null(h$score, NA_real_)), numeric(1)),
+        metadata = I(lapply(hits, function(h) or_null(h$payload, list()))),
+        stringsAsFactors = FALSE
+    )
+}
+
+connect_pinecone_store <- function(vector_database_directory) {
+    cfg <- parse_remote_target(
+        vector_database_directory,
+        default_name = Sys.getenv("PINECONE_NAMESPACE", "")
+    )
+    cfg$api_key <- Sys.getenv("PINECONE_API_KEY")
+    cfg
+}
+
+search_pinecone <- function(store, query_text, top_k = 5, embed_fun = embed_openai(), embedding_dim = 1536) {
+    q_vec <- embed_query_vector(query_text, embed_fun, embedding_dim)
+    headers <- list()
+    if (nzchar(or_null(store$api_key, ""))) {
+        headers[["Api-Key"]] <- store$api_key
+    }
+    body <- list(
+        vector = as.numeric(q_vec),
+        topK = as.integer(top_k),
+        includeMetadata = TRUE,
+        includeValues = FALSE
+    )
+    if (nzchar(or_null(store$name, ""))) {
+        body$namespace <- store$name
+    }
+    parsed <- http_json_post(
+        url = paste0(store$base_url, "/query"),
+        body = body,
+        headers = headers
+    )
+
+    matches <- or_null(parsed$matches, list())
+    if (!length(matches)) {
+        return(empty_vector_result())
+    }
+
+    data.frame(
+        id = vapply(matches, function(m) as.character(or_null(m$id, "")), character(1)),
+        page_content = vapply(matches, function(m) extract_text_field(or_null(m$metadata, list())), character(1)),
+        score = vapply(matches, function(m) as.numeric(or_null(m$score, NA_real_)), numeric(1)),
+        metadata = I(lapply(matches, function(m) or_null(m$metadata, list()))),
+        stringsAsFactors = FALSE
+    )
+}
+
+connect_weaviate_store <- function(vector_database_directory) {
+    cfg <- parse_remote_target(
+        vector_database_directory,
+        default_name = Sys.getenv("WEAVIATE_CLASS", "Document")
+    )
+    cfg$api_key <- Sys.getenv("WEAVIATE_API_KEY")
+    cfg
+}
+
+search_weaviate <- function(store, query_text, top_k = 5, embed_fun = embed_openai(), embedding_dim = 1536) {
+    q_vec <- embed_query_vector(query_text, embed_fun, embedding_dim)
+    vec_str <- paste(format(q_vec, scientific = FALSE, trim = TRUE), collapse = ", ")
+    class_name <- or_null(store$name, "Document")
+    query <- paste0(
+        "{ Get { ", class_name,
+        "(nearVector: { vector: [", vec_str, "] }, limit: ", as.integer(top_k), ") ",
+        "{ page_content content text _additional { id distance score certainty } } } }"
+    )
+
+    headers <- list()
+    if (nzchar(or_null(store$api_key, ""))) {
+        headers[["Authorization"]] <- paste("Bearer", store$api_key)
+    }
+
+    parsed <- http_json_post(
+        url = paste0(store$base_url, "/v1/graphql"),
+        body = list(query = query),
+        headers = headers
+    )
+
+    rows <- or_null(or_null(or_null(parsed$data, list())$Get, list())[[class_name]], list())
+    if (!length(rows)) {
+        return(empty_vector_result())
+    }
+
+    data.frame(
+        id = vapply(rows, function(r) {
+            add <- or_null(r$`_additional`, list())
+            as.character(or_null(add$id, or_null(r$id, "")))
+        }, character(1)),
+        page_content = vapply(rows, extract_text_field, character(1)),
+        score = vapply(rows, function(r) {
+            add <- or_null(r$`_additional`, list())
+            as.numeric(or_null(
+                add$score,
+                or_null(add$certainty, if (!is.null(add$distance)) -as.numeric(add$distance) else NA_real_)
+            ))
+        }, numeric(1)),
+        metadata = I(lapply(rows, function(r) {
+            md <- r
+            md$page_content <- NULL
+            md$text <- NULL
+            md$content <- NULL
+            md$`_additional` <- NULL
+            md
+        })),
+        stringsAsFactors = FALSE
+    )
+}
+
+connect_elasticsearch_store <- function(vector_database_directory) {
+    cfg <- parse_remote_target(
+        vector_database_directory,
+        default_name = Sys.getenv("ELASTIC_INDEX", "vectors"),
+        default_extra = Sys.getenv("ELASTIC_VECTOR_FIELD", "embedding")
+    )
+    cfg$api_key <- Sys.getenv("ELASTIC_API_KEY")
+    cfg
+}
+
+search_elasticsearch <- function(store, query_text, top_k = 5, embed_fun = embed_openai(), embedding_dim = 1536) {
+    q_vec <- embed_query_vector(query_text, embed_fun, embedding_dim)
+    headers <- list()
+    api_key <- or_null(store$api_key, "")
+    if (nzchar(api_key)) {
+        headers[["Authorization"]] <- if (grepl("^ApiKey\\s+", api_key, ignore.case = TRUE)) {
+            api_key
+        } else {
+            paste("ApiKey", api_key)
+        }
+    }
+
+    body <- list(
+        size = as.integer(top_k),
+        knn = list(
+            field = or_null(store$extra, "embedding"),
+            query_vector = as.numeric(q_vec),
+            k = as.integer(top_k),
+            num_candidates = as.integer(max(50, top_k * 5))
+        ),
+        `_source` = list(
+            includes = list("page_content", "text", "content", "metadata")
+        )
+    )
+
+    parsed <- http_json_post(
+        url = paste0(
+            store$base_url, "/",
+            utils::URLencode(store$name, reserved = TRUE),
+            "/_search"
+        ),
+        body = body,
+        headers = headers
+    )
+
+    hits <- or_null(or_null(parsed$hits, list())$hits, list())
+    if (!length(hits)) {
+        return(empty_vector_result())
+    }
+
+    data.frame(
+        id = vapply(hits, function(h) as.character(or_null(h$`_id`, "")), character(1)),
+        page_content = vapply(hits, function(h) extract_text_field(or_null(h$`_source`, list())), character(1)),
+        score = vapply(hits, function(h) as.numeric(or_null(h$`_score`, NA_real_)), numeric(1)),
+        metadata = I(lapply(hits, function(h) {
+            src <- or_null(h$`_source`, list())
+            md <- or_null(src$metadata, src)
+            md$page_content <- NULL
+            md$text <- NULL
+            md$content <- NULL
+            md
+        })),
+        stringsAsFactors = FALSE
+    )
+}
+
 # ==============================================================================
 #  3) MESSAGE HISTORY CLASS (Equivalent to SimpleMessageHistory)
 # ==============================================================================
@@ -184,26 +559,90 @@ perform_tavily_search <- function(query, tavily_search = NULL, max_results = 5) 
 }
 
 # This function merges vector DB results with optional web search results
-perform_web_search <- function(input_text, con, embed_fun, embedding_dim, tavily_search = NULL, use_web_search = TRUE) {
+perform_web_search <- function(input_text,
+                               con = NULL,
+                               embed_fun = embed_openai(),
+                               embedding_dim = 1536,
+                               tavily_search = NULL,
+                               use_web_search = TRUE,
+                               method = "DuckDB",
+                               vectrix_store = NULL,
+                               qdrant_store = NULL,
+                               pinecone_store = NULL,
+                               weaviate_store = NULL,
+                               elastic_store = NULL,
+                               vectrix_mode = "hybrid") {
     # Initialize documents from vector search
-    vector_results <- search_vectors(
-        con         = con,
-        query_text  = input_text,
-        top_k       = 5,
-        embed_fun   = embed_fun,
-        embedding_dim = embedding_dim
-    )
+    vector_results <- if (identical(method, "DuckDB")) {
+        search_vectors(
+            con           = con,
+            query_text    = input_text,
+            top_k         = 5,
+            embed_fun     = embed_fun,
+            embedding_dim = embedding_dim
+        )
+    } else if (identical(method, "VectrixDB")) {
+        search_vectrix(
+            vdb = vectrix_store,
+            query_text = input_text,
+            top_k = 5,
+            mode = vectrix_mode
+        )
+    } else if (identical(method, "Qdrant")) {
+        search_qdrant(
+            store = qdrant_store,
+            query_text = input_text,
+            top_k = 5,
+            embed_fun = embed_fun,
+            embedding_dim = embedding_dim
+        )
+    } else if (identical(method, "Pinecone")) {
+        search_pinecone(
+            store = pinecone_store,
+            query_text = input_text,
+            top_k = 5,
+            embed_fun = embed_fun,
+            embedding_dim = embedding_dim
+        )
+    } else if (identical(method, "Weaviate")) {
+        search_weaviate(
+            store = weaviate_store,
+            query_text = input_text,
+            top_k = 5,
+            embed_fun = embed_fun,
+            embedding_dim = embedding_dim
+        )
+    } else if (identical(method, "Elasticsearch")) {
+        search_elasticsearch(
+            store = elastic_store,
+            query_text = input_text,
+            top_k = 5,
+            embed_fun = embed_fun,
+            embedding_dim = embedding_dim
+        )
+    } else {
+        stop("Unsupported method: ", method, call. = FALSE)
+    }
 
     documents <- NULL
     if (nrow(vector_results) > 0) {
         documents <- lapply(1:nrow(vector_results), function(i) {
+            md <- list(
+                id = vector_results$id[i],
+                source = "vector_database"
+            )
+            if ("dist" %in% names(vector_results)) {
+                md$dist <- vector_results$dist[i]
+            }
+            if ("score" %in% names(vector_results)) {
+                md$score <- vector_results$score[i]
+            }
+            if ("metadata" %in% names(vector_results) && length(vector_results$metadata) >= i) {
+                md$metadata <- vector_results$metadata[[i]]
+            }
             list(
                 page_content = vector_results$page_content[i],
-                metadata = list(
-                    id    = vector_results$id[i],
-                    dist  = vector_results$dist[i],
-                    source = "vector_database"
-                )
+                metadata = md
             )
         })
     }
@@ -417,8 +856,15 @@ search_vectors <- function(
 #' and in-memory message history for conversational context.
 #'
 #' @param llm A function that takes a prompt and returns a response (e.g. a call to OpenAI or Claude).
-#' @param vector_database_directory Path to the DuckDB database file.
-#' @param method Retrieval method backend. Currently only `"DuckDB"` is supported.
+#' @param vector_database_directory Path to the vector backend.
+#'   For `method = "DuckDB"`, pass a DuckDB database file path.
+#'   For `method = "VectrixDB"`, pass a VectrixDB collection path/root path or collection name.
+#'   For `method = "Qdrant"`, pass `"https://host:6333|collection_name"`.
+#'   For `method = "Pinecone"`, pass `"https://index-host|namespace"` (namespace optional).
+#'   For `method = "Weaviate"`, pass `"https://weaviate-host|ClassName"`.
+#'   For `method = "Elasticsearch"`, pass `"https://elastic-host:9200|index_name|vector_field"` (vector field optional).
+#' @param method Retrieval backend. One of
+#'   `"DuckDB"`, `"VectrixDB"`, `"Qdrant"`, `"Pinecone"`, `"Weaviate"`, or `"Elasticsearch"`.
 #' @param embedding_function A function to embed text. Defaults to \code{embed_openai()}.
 #' @param system_prompt Optional prompt with placeholders \code{{chat_history}}, \code{{input}}, \code{{context}}.
 #' @param chat_history_prompt Prompt used to rephrase follow-up questions using prior conversation history.
@@ -432,7 +878,7 @@ search_vectors <- function(
 #'   \item \code{custom_invoke(text)} — Retrieves context only (no LLM call)
 #'   \item \code{get_session_history()} — Returns complete conversation history
 #'   \item \code{clear_history()} — Clears in-memory chat history
-#'   \item \code{disconnect()} — Closes the underlying DuckDB connection
+#'   \item \code{disconnect()} — Closes any open local backend connection
 #' }
 #'
 #' @examples
@@ -452,14 +898,14 @@ search_vectors <- function(
 #' @title create_rag_chain.R Overview
 #' @description
 #' A refined implementation of a LangChain-style Retrieval-Augmented Generation (RAG) pipeline.
-#' Includes vector search using DuckDB, optional web search using the Tavily API, and a
+#' Includes vector search across multiple backends, optional web search using the Tavily API, and a
 #' built-in chat message history.
 #'
 #' This function powers `create_rag_chain()`, the exported entry point for constructing a full RAG pipeline.
 #'
 #' ## Features:
 #' - Context-aware reformulation of user queries
-#' - Semantic chunk retrieval using DuckDB
+#' - Semantic chunk retrieval using DuckDB, VectrixDB, Qdrant, Pinecone, Weaviate, or Elasticsearch
 #' - Optional real-time web search (Tavily)
 #' - Compatible with any LLM function (OpenAI, Claude, etc.)
 #'
@@ -490,20 +936,42 @@ create_rag_chain <- function(
         use_web_search     = TRUE
 ) {
     # Validate method
-    if (method != "DuckDB") {
-        stop("Only 'DuckDB' method is supported in this implementation. Please choose 'DuckDB'.")
-    }
+    method <- match.arg(
+        method,
+        c("DuckDB", "VectrixDB", "Qdrant", "Pinecone", "Weaviate", "Elasticsearch")
+    )
 
     # Default embedding function
     if (is.null(embedding_function)) {
         embedding_function <- embed_openai(model = "text-embedding-ada-002")
     }
 
-    # Connect to DuckDB
-    con <- connect_vectorstore(db_path = vector_database_directory, read_only = FALSE)
+    con <- NULL
+    vectrix_store <- NULL
+    qdrant_store <- NULL
+    pinecone_store <- NULL
+    weaviate_store <- NULL
+    elastic_store <- NULL
+    if (identical(method, "VectrixDB") && !vectrixdb_is_available()) {
+        stop(vectrixdb_install_message(), call. = FALSE)
+    }
 
-    # Build or rebuild the vector index
-    build_vector_index(con, type = c("vss", "fts"))
+    if (identical(method, "DuckDB")) {
+        # Connect to DuckDB
+        con <- connect_vectorstore(db_path = vector_database_directory, read_only = FALSE)
+        # Build or rebuild the vector index
+        build_vector_index(con, type = c("vss", "fts"))
+    } else if (identical(method, "VectrixDB")) {
+        vectrix_store <- connect_vectrix_store(vector_database_directory)
+    } else if (identical(method, "Qdrant")) {
+        qdrant_store <- connect_qdrant_store(vector_database_directory)
+    } else if (identical(method, "Pinecone")) {
+        pinecone_store <- connect_pinecone_store(vector_database_directory)
+    } else if (identical(method, "Weaviate")) {
+        weaviate_store <- connect_weaviate_store(vector_database_directory)
+    } else if (identical(method, "Elasticsearch")) {
+        elastic_store <- connect_elasticsearch_store(vector_database_directory)
+    }
 
     # Default prompts
     if (is.null(system_prompt)) {
@@ -583,7 +1051,13 @@ create_rag_chain <- function(
             embed_fun     = embedding_function,
             embedding_dim = embedding_dim,
             tavily_search = tavily_search,
-            use_web_search = use_web_search
+            use_web_search = use_web_search,
+            method = method,
+            vectrix_store = vectrix_store,
+            qdrant_store = qdrant_store,
+            pinecone_store = pinecone_store,
+            weaviate_store = weaviate_store,
+            elastic_store = elastic_store
         )
         list(
             chat_history = chat_history,
@@ -603,7 +1077,13 @@ create_rag_chain <- function(
             embed_fun     = embedding_function,
             embedding_dim = embedding_dim,
             tavily_search = tavily_search,
-            use_web_search = use_web_search
+            use_web_search = use_web_search,
+            method = method,
+            vectrix_store = vectrix_store,
+            qdrant_store = qdrant_store,
+            pinecone_store = pinecone_store,
+            weaviate_store = weaviate_store,
+            elastic_store = elastic_store
         )
 
         answer <- answer_question(standalone_question, chat_history, documents)
@@ -628,7 +1108,15 @@ create_rag_chain <- function(
         custom_invoke      = custom_invoke,
         get_session_history= function() message_history$get_messages(),
         clear_history      = function() message_history$clear_messages(),
-        disconnect         = function() DBI::dbDisconnect(con)
+        disconnect         = function() {
+            if (identical(method, "DuckDB") && !is.null(con) && DBI::dbIsValid(con)) {
+                DBI::dbDisconnect(con)
+            }
+            if (identical(method, "VectrixDB") && !is.null(vectrix_store) && is.function(vectrix_store$close)) {
+                vectrix_store$close()
+            }
+            invisible(NULL)
+        }
     )
 }
 

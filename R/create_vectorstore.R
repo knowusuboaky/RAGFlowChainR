@@ -1,6 +1,22 @@
 # =============================================================================
 # 1) EMBEDDING
 # =============================================================================
+#' Embed text with OpenAI
+#'
+#' Helper for vector-store pipelines. If called without `x`, this returns a
+#' closure that can be passed directly to `insert_vectors(embed_fun = ...)`.
+#'
+#' @rdname create_vectorstore
+#' @param x Character vector of texts, or a data frame with a `page_content` column.
+#' @param model OpenAI embedding model name.
+#' @param base_url Base URL for an OpenAI-compatible API.
+#' @param api_key API key; defaults to `Sys.getenv("OPENAI_API_KEY")`.
+#' @param batch_size Batch size for embedding requests.
+#' @param embedding_dim Expected embedding dimension.
+#' @return For character input, a numeric matrix of embeddings. For data-frame
+#'   input, the same data frame with an added `embedding` column. If `x` is
+#'   missing, a configured embedding function is returned.
+#' @export
 embed_openai <- function(
     x,
     model         = "text-embedding-ada-002",
@@ -69,8 +85,9 @@ embed_openai <- function(
 #'   \item Running nearest-neighbour search over vector embeddings
 #' }
 #'
-#' Only \code{create_vectorstore()} is exported; helpers like \code{insert_vectors()}, \code{build_vector_index()},
-#' and \code{search_vectors()} are internal but designed to be composable.
+#' Core helpers like \code{embed_openai()}, \code{insert_vectors()},
+#' \code{build_vector_index()}, and \code{search_vectors()} are also exported
+#' to support composable workflows.
 #'
 #' @examples
 #' \dontrun{
@@ -171,6 +188,17 @@ chunk_content_approx <- function(txt, chunk_chars = 12000) {
   Map(substr, txt, starts, ends, USE.NAMES = FALSE)
 }
 
+#' Insert vectors into the store
+#'
+#' Chunks long text rows, generates embeddings when needed, and inserts
+#' `(page_content, embedding)` rows into the `vectors` table.
+#'
+#' @rdname create_vectorstore
+#' @param con Active DuckDB DBI connection.
+#' @param df Data frame containing `page_content` (or `content`) text.
+#' @param embed_fun Function used to convert text into numeric embeddings.
+#' @param chunk_chars Approximate max chunk size in bytes before splitting.
+#' @export
 insert_vectors <- function(
     con,
     df,
@@ -239,6 +267,14 @@ insert_vectors <- function(
 # =============================================================================
 # 4) INDEX & SEARCH
 # =============================================================================
+#' Build vector and text indexes
+#'
+#' Builds HNSW (`vss`) and/or full-text (`fts`) indexes on the `vectors` table.
+#'
+#' @rdname create_vectorstore
+#' @param store Active DuckDB DBI connection or vector-store handle.
+#' @param type Index types to build; any of `"vss"` and/or `"fts"`.
+#' @export
 build_vector_index <- function(store, type = c("vss", "fts")) {
   con  <- if (inherits(store, "DBIConnection")) store else store
   type <- match.arg(type, several.ok = TRUE)
@@ -274,6 +310,15 @@ build_vector_index <- function(store, type = c("vss", "fts")) {
   invisible(store)
 }
 
+#' Search vectors by query text
+#'
+#' Embeds `query_text`, computes vector distance against stored embeddings,
+#' and returns the nearest matches.
+#'
+#' @rdname create_vectorstore
+#' @param query_text Query text to embed and search.
+#' @param top_k Number of nearest matches to return.
+#' @export
 search_vectors <- function(
     con,
     query_text,

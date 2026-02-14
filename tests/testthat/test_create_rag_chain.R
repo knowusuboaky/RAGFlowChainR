@@ -73,3 +73,176 @@ test_that("ignore_history flag respected silently", {
   expect_equal(res$answer, "fresh")
   chain$disconnect()
 })
+
+test_that("create_rag_chain supports VectrixDB backend via adapter", {
+  mock_llm <- function(prompt) "vectrix answer"
+  fake_store <- list(
+    close = function() invisible(NULL)
+  )
+
+  local_mocked_bindings(
+    vectrixdb_is_available = function() TRUE,
+    connect_vectrix_store = function(vector_database_directory) fake_store,
+    search_vectrix = function(vdb, query_text, top_k = 5, mode = "hybrid") {
+      out <- data.frame(
+        id = "doc1",
+        page_content = "Vectrix document",
+        score = 0.99,
+        stringsAsFactors = FALSE
+      )
+      out$metadata <- list(list(source = "mock"))
+      out
+    },
+    .package = "RAGFlowChainR"
+  )
+
+  chain <- create_rag_chain(
+    llm = mock_llm,
+    vector_database_directory = "dummy_collection",
+    method = "VectrixDB",
+    use_web_search = FALSE
+  )
+
+  out <- chain$invoke("Tell me about R")
+  expect_equal(out$answer, "vectrix answer")
+  expect_true(length(out$documents) >= 1)
+  expect_equal(out$documents[[1]]$page_content, "Vectrix document")
+  expect_silent(chain$disconnect())
+})
+
+test_that("create_rag_chain supports Qdrant backend via adapter", {
+  mock_llm <- function(prompt) "qdrant answer"
+
+  local_mocked_bindings(
+    connect_qdrant_store = function(vector_database_directory) list(url = "mock"),
+    search_qdrant = function(store, query_text, top_k = 5, embed_fun = NULL, embedding_dim = 1536) {
+      out <- data.frame(
+        id = "doc_qdrant",
+        page_content = "Qdrant document",
+        score = 0.97,
+        stringsAsFactors = FALSE
+      )
+      out$metadata <- list(list(source = "mock"))
+      out
+    },
+    .package = "RAGFlowChainR"
+  )
+
+  chain <- create_rag_chain(
+    llm = mock_llm,
+    vector_database_directory = "https://mock-qdrant|collection",
+    method = "Qdrant",
+    use_web_search = FALSE
+  )
+
+  out <- chain$invoke("Tell me about R")
+  expect_equal(out$answer, "qdrant answer")
+  expect_equal(out$documents[[1]]$page_content, "Qdrant document")
+})
+
+test_that("create_rag_chain supports Pinecone backend via adapter", {
+  mock_llm <- function(prompt) "pinecone answer"
+
+  local_mocked_bindings(
+    connect_pinecone_store = function(vector_database_directory) list(url = "mock"),
+    search_pinecone = function(store, query_text, top_k = 5, embed_fun = NULL, embedding_dim = 1536) {
+      out <- data.frame(
+        id = "doc_pinecone",
+        page_content = "Pinecone document",
+        score = 0.95,
+        stringsAsFactors = FALSE
+      )
+      out$metadata <- list(list(source = "mock"))
+      out
+    },
+    .package = "RAGFlowChainR"
+  )
+
+  chain <- create_rag_chain(
+    llm = mock_llm,
+    vector_database_directory = "https://mock-pinecone|namespace",
+    method = "Pinecone",
+    use_web_search = FALSE
+  )
+
+  out <- chain$invoke("Tell me about R")
+  expect_equal(out$answer, "pinecone answer")
+  expect_equal(out$documents[[1]]$page_content, "Pinecone document")
+})
+
+test_that("create_rag_chain supports Weaviate backend via adapter", {
+  mock_llm <- function(prompt) "weaviate answer"
+
+  local_mocked_bindings(
+    connect_weaviate_store = function(vector_database_directory) list(url = "mock"),
+    search_weaviate = function(store, query_text, top_k = 5, embed_fun = NULL, embedding_dim = 1536) {
+      out <- data.frame(
+        id = "doc_weaviate",
+        page_content = "Weaviate document",
+        score = 0.94,
+        stringsAsFactors = FALSE
+      )
+      out$metadata <- list(list(source = "mock"))
+      out
+    },
+    .package = "RAGFlowChainR"
+  )
+
+  chain <- create_rag_chain(
+    llm = mock_llm,
+    vector_database_directory = "https://mock-weaviate|Document",
+    method = "Weaviate",
+    use_web_search = FALSE
+  )
+
+  out <- chain$invoke("Tell me about R")
+  expect_equal(out$answer, "weaviate answer")
+  expect_equal(out$documents[[1]]$page_content, "Weaviate document")
+})
+
+test_that("create_rag_chain supports Elasticsearch backend via adapter", {
+  mock_llm <- function(prompt) "elastic answer"
+
+  local_mocked_bindings(
+    connect_elasticsearch_store = function(vector_database_directory) list(url = "mock"),
+    search_elasticsearch = function(store, query_text, top_k = 5, embed_fun = NULL, embedding_dim = 1536) {
+      out <- data.frame(
+        id = "doc_elastic",
+        page_content = "Elasticsearch document",
+        score = 0.93,
+        stringsAsFactors = FALSE
+      )
+      out$metadata <- list(list(source = "mock"))
+      out
+    },
+    .package = "RAGFlowChainR"
+  )
+
+  chain <- create_rag_chain(
+    llm = mock_llm,
+    vector_database_directory = "https://mock-elastic|vectors|embedding",
+    method = "Elasticsearch",
+    use_web_search = FALSE
+  )
+
+  out <- chain$invoke("Tell me about R")
+  expect_equal(out$answer, "elastic answer")
+  expect_equal(out$documents[[1]]$page_content, "Elasticsearch document")
+})
+
+test_that("create_rag_chain errors clearly when VectrixDB is missing", {
+  local_mocked_bindings(
+    vectrixdb_is_available = function() FALSE,
+    .package = "RAGFlowChainR"
+  )
+
+  expect_error(
+    create_rag_chain(
+      llm = function(prompt) "ok",
+      vector_database_directory = "anything",
+      method = "VectrixDB",
+      use_web_search = FALSE
+    ),
+    "requires package 'VectrixDB'"
+  )
+})

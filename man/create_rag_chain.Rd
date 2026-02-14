@@ -6,9 +6,16 @@
 \arguments{
 \item{llm}{A function that takes a prompt and returns a response (e.g. a call to OpenAI or Claude).}
 
-\item{vector_database_directory}{Path to the DuckDB database file.}
+\item{vector_database_directory}{Path to the vector backend.
+For `method = "DuckDB"`, pass a DuckDB database file path.
+For `method = "VectrixDB"`, pass a VectrixDB collection path/root path or collection name.
+For `method = "Qdrant"`, pass `"https://host:6333|collection_name"`.
+For `method = "Pinecone"`, pass `"https://index-host|namespace"` (namespace optional).
+For `method = "Weaviate"`, pass `"https://weaviate-host|ClassName"`.
+For `method = "Elasticsearch"`, pass `"https://elastic-host:9200|index_name|vector_field"` (vector field optional).}
 
-\item{method}{Retrieval method backend. Currently only `"DuckDB"` is supported.}
+\item{method}{Retrieval backend. One of
+`"DuckDB"`, `"VectrixDB"`, `"Qdrant"`, `"Pinecone"`, `"Weaviate"`, or `"Elasticsearch"`.}
 
 \item{embedding_function}{A function to embed text. Defaults to \code{embed_openai()}.}
 
@@ -29,19 +36,19 @@ A list of utility functions:
   \item \code{custom_invoke(text)} — Retrieves context only (no LLM call)
   \item \code{get_session_history()} — Returns complete conversation history
   \item \code{clear_history()} — Clears in-memory chat history
-  \item \code{disconnect()} — Closes the underlying DuckDB connection
+  \item \code{disconnect()} — Closes any open local backend connection
 }
 }
 \description{
 A refined implementation of a LangChain-style Retrieval-Augmented Generation (RAG) pipeline.
-Includes vector search using DuckDB, optional web search using the Tavily API, and a
+Includes vector search across multiple backends, optional web search using the Tavily API, and a
 built-in chat message history.
 
 This function powers `create_rag_chain()`, the exported entry point for constructing a full RAG pipeline.
 
 ## Features:
 - Context-aware reformulation of user queries
-- Semantic chunk retrieval using DuckDB
+- Semantic chunk retrieval using DuckDB, VectrixDB, Qdrant, Pinecone, Weaviate, or Elasticsearch
 - Optional real-time web search (Tavily)
 - Compatible with any LLM function (OpenAI, Claude, etc.)
 
