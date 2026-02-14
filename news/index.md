@@ -4,7 +4,7 @@
 
 - No changes yet.
 
-## RAGFlowChainR 0.1.4
+## RAGFlowChainR 0.1.4 (2026-02-14)
 
 CRAN release: 2025-05-22
 
