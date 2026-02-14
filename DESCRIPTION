@@ -39,6 +39,5 @@ Suggests:
     magrittr,
     roxygen2,
     knitr,
-    rmarkdown,
-    VectrixDB
+    rmarkdown
 Config/testthat/edition: 3
