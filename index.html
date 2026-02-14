@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">RAGFlowChainR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,6 +32,21 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Backends</h6></li>
+    <li><a class="dropdown-item" href="articles/duckdb-backend.html">RAG with DuckDB Backend</a></li>
+    <li><a class="dropdown-item" href="articles/qdrant-backend.html">RAG with Qdrant Backend</a></li>
+    <li><a class="dropdown-item" href="articles/pinecone-backend.html">RAG with Pinecone Backend</a></li>
+    <li><a class="dropdown-item" href="articles/weaviate-backend.html">RAG with Weaviate Backend</a></li>
+    <li><a class="dropdown-item" href="articles/elasticsearch-backend.html">RAG with Elasticsearch Backend</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Backends</h6></li>
+    <li><a class="dropdown-item" href="articles/vectrixdb-backend.html">RAG with VectrixDB Backend</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -47,7 +62,7 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="ragflowchainr-">RAGFlowChainR <a href="https://knowusuboaky.github.io/RAGFlowChainR/"><img src="reference/figures/ragopenlogo.png" align="right" height="120"></a>
+<div class="page-header"><h1 id="ragflowchainr-">RAGFlowChainR <a href="https://knowusuboaky.github.io/RAGFlowChainR"><img src="reference/figures/ragopenlogo.png" align="right" height="120"></a>
 <a class="anchor" aria-label="anchor" href="#ragflowchainr-"></a>
 </h1></div>
 <!-- badges: start -->
@@ -55,16 +70,8 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p><strong>RAGFlowChainR</strong> is an R package that brings Retrieval-Augmented Generation (RAG) capabilities to R, inspired by LangChain. It enables intelligent retrieval of documents from a local vector store (DuckDB), optional web search, and seamless integration with Large Language Models (LLMs).</p>
-<p>Features include:</p>
-<ul>
-<li>📂 Ingest files and websites</li>
-<li>🔍 Semantic search using vector embeddings</li>
-<li>🧠 RAG chain execution with conversational memory and dynamic prompt construction</li>
-<li>🔌 Plug-and-play with OpenAI, Ollama, Groq, and Anthropic</li>
-</ul>
-<p>Python version: <a href="https://pypi.org/project/RAGFlowChain/" class="external-link">RAGFlowChain (PyPI)</a><br>
-GitHub (Python): <a href="https://github.com/knowusuboaky/RAGFlowChain" class="external-link">RAGFlowChain</a></p>
+<p><code>RAGFlowChainR</code> is an R package for Retrieval-Augmented Generation (RAG) workflows with local retrieval backends (<code>DuckDB</code> and <code>VectrixDB</code>) plus optional web search.</p>
+<p>The README is intentionally short. Full backend workflows are documented in vignettes.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -77,158 +84,56 @@ GitHub (Python): <a href="https://github.com/knowusuboaky/RAGFlowChain" class="e
 <div class="section level2">
 <h2 id="development-version">Development version<a class="anchor" aria-label="anchor" href="#development-version"></a>
 </h2>
-<p>To get the latest features or bug fixes, you can install the development version of <code>RAGFlowChainR</code> from GitHub:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># If needed</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
-<span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"knowusuboaky/RAGFlowChainR"</span><span class="op">)</span></span></code></pre></div>
-<p>See the full <a href="https://knowusuboaky.github.io/RAGFlowChainR/reference/">function reference</a> or the <a href="https://knowusuboaky.github.io/RAGFlowChainR/">package website</a> for more details.</p>
 <hr>
 </div>
 <div class="section level2">
-<h2 id="id_-environment-setup">🔐 Environment Setup<a class="anchor" aria-label="anchor" href="#id_-environment-setup"></a>
+<h2 id="backend-guides">Backend Guides<a class="anchor" aria-label="anchor" href="#backend-guides"></a>
+</h2>
+<ul>
+<li>DuckDB backend article: <a href="https://knowusuboaky.github.io/RAGFlowChainR/articles/duckdb-backend.html" class="uri">https://knowusuboaky.github.io/RAGFlowChainR/articles/duckdb-backend.html</a>
+</li>
+<li>VectrixDB backend article: <a href="https://knowusuboaky.github.io/RAGFlowChainR/articles/vectrixdb-backend.html" class="uri">https://knowusuboaky.github.io/RAGFlowChainR/articles/vectrixdb-backend.html</a>
+</li>
+<li>Function reference: <a href="https://knowusuboaky.github.io/RAGFlowChainR/reference" class="uri">https://knowusuboaky.github.io/RAGFlowChainR/reference</a>
+</li>
+</ul>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/knowusuboaky/RAGFlowChainR" class="external-link">RAGFlowChainR</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">rag</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_rag_chain.html">create_rag_chain</a></span><span class="op">(</span></span>
+<span>  llm <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">prompt</span><span class="op">)</span> <span class="st">"mock answer"</span>,</span>
+<span>  vector_database_directory <span class="op">=</span> <span class="st">"my_vectors.duckdb"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"DuckDB"</span>,</span>
+<span>  use_web_search <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">rag</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="st">"What is RAG?"</span><span class="op">)</span></span>
+<span><span class="va">rag</span><span class="op">$</span><span class="fu">disconnect</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>For complete ingestion, indexing, and backend-specific setup, use the two backend vignettes above.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="environment-setup">Environment Setup<a class="anchor" aria-label="anchor" href="#environment-setup"></a>
+</h2>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>TAVILY_API_KEY    <span class="op">=</span> <span class="st">"your-tavily-api-key"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>OPENAI_API_KEY    <span class="op">=</span> <span class="st">"your-openai-api-key"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>GROQ_API_KEY      <span class="op">=</span> <span class="st">"your-groq-api-key"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>ANTHROPIC_API_KEY <span class="op">=</span> <span class="st">"your-anthropic-api-key"</span><span class="op">)</span></span></code></pre></div>
-<p>To persist across sessions, add these to your <code>~/.Renviron</code> file.</p>
-<hr>
-</div>
-<div class="section level2">
-<h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
-</h2>
-<div class="section level3">
-<h3 id="id_1-data-ingestion">1. Data Ingestion<a class="anchor" aria-label="anchor" href="#id_1-data-ingestion"></a>
-</h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/knowusuboaky/RAGFlowChainR" class="external-link">RAGFlowChainR</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">local_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tests/testthat/test-data/sprint.pdf"</span>, </span>
-<span>                 <span class="st">"tests/testthat/test-data/introduction.pptx"</span>,</span>
-<span>                 <span class="st">"tests/testthat/test-data/overview.txt"</span><span class="op">)</span></span>
-<span><span class="va">website_urls</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://www.r-project.org"</span><span class="op">)</span></span>
-<span><span class="va">crawl_depth</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
-<span></span>
-<span><span class="va">response</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/fetch_data.html">fetch_data</a></span><span class="op">(</span></span>
-<span>  local_paths <span class="op">=</span> <span class="va">local_files</span>,</span>
-<span>  website_urls <span class="op">=</span> <span class="va">website_urls</span>,</span>
-<span>  crawl_depth <span class="op">=</span> <span class="va">crawl_depth</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">response</span></span>
-<span><span class="co">#&gt;                                source                                      title ...</span></span>
-<span><span class="co">#&gt; 1                 documents/sprint.pdf                                       &lt;NA&gt; ...</span></span>
-<span><span class="co">#&gt; 2          documents/introduction.pptx                                       &lt;NA&gt; ...</span></span>
-<span><span class="co">#&gt; 3               documents/overview.txt                                       &lt;NA&gt; ...</span></span>
-<span><span class="co">#&gt; 4            https://www.r-project.org R: The R Project for Statistical Computing ...</span></span>
-<span><span class="co">#&gt; ...</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">response</span><span class="op">$</span><span class="va">content</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Getting Started with Scrum\nCodeWithPraveen.com ...</span></span></code></pre></div>
-<hr>
-</div>
-<div class="section level3">
-<h3 id="id_2-vector-store--semantic-search">2. Vector Store &amp; Semantic Search<a class="anchor" aria-label="anchor" href="#id_2-vector-store--semantic-search"></a>
-</h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">con</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_vectorstore.html">create_vectorstore</a></span><span class="op">(</span><span class="st">"tests/testthat/test-data/my_vectors.duckdb"</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">docs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">response</span><span class="op">)</span><span class="op">)</span>  <span class="co"># reuse from fetch_data()</span></span>
-<span></span>
-<span><span class="fu">insert_vectors</span><span class="op">(</span></span>
-<span>  con <span class="op">=</span> <span class="va">con</span>,</span>
-<span>  df <span class="op">=</span> <span class="va">docs</span>,</span>
-<span>  embed_fun <span class="op">=</span> <span class="fu">embed_openai</span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  chunk_chars <span class="op">=</span> <span class="fl">12000</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">build_vector_index</span><span class="op">(</span><span class="va">con</span>, type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"vss"</span>, <span class="st">"fts"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">response</span> <span class="op">&lt;-</span> <span class="fu">search_vectors</span><span class="op">(</span><span class="va">con</span>, query_text <span class="op">=</span> <span class="st">"Tell me about R?"</span>, top_k <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">response</span></span>
-<span><span class="co">#&gt;    id page_content                                                dist</span></span>
-<span><span class="co">#&gt; 1   5 [Home]\nDownload\nCRAN\nR Project...\n...                0.2183</span></span>
-<span><span class="co">#&gt; 2   6 [Home]\nDownload\nCRAN\nR Project...\n...                0.2183</span></span>
-<span><span class="co">#&gt; ...</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">response</span><span class="op">$</span><span class="va">page_content</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [Home]\nDownload\nCRAN\nR Project\nAbout R\nLogo\n...</span></span></code></pre></div>
-<hr>
-</div>
-<div class="section level3">
-<h3 id="id_3-rag-chain-querying">3. RAG Chain Querying<a class="anchor" aria-label="anchor" href="#id_3-rag-chain-querying"></a>
-</h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rag_chain</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/create_rag_chain.html">create_rag_chain</a></span><span class="op">(</span></span>
-<span>  llm <span class="op">=</span> <span class="va">call_llm</span>,</span>
-<span>  vector_database_directory <span class="op">=</span> <span class="st">"tests/testthat/test-data/my_vectors.duckdb"</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"DuckDB"</span>,</span>
-<span>  embedding_function <span class="op">=</span> <span class="fu">embed_openai</span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  use_web_search <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">response</span> <span class="op">&lt;-</span> <span class="va">rag_chain</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="st">"Tell me about R"</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">response</span></span>
-<span><span class="co">#&gt; $input</span></span>
-<span><span class="co">#&gt; [1] "Tell me about R"</span></span>
-<span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; $chat_history</span></span>
-<span><span class="co">#&gt; [[1]] $role: "human", $content: "Tell me about R"</span></span>
-<span><span class="co">#&gt; [[2]] $role: "assistant", $content: "R is a programming language..."</span></span>
-<span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; $answer</span></span>
-<span><span class="co">#&gt; [1] "R is a programming language and software environment commonly used for statistical computing and graphics..."</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="va">response</span><span class="op">$</span><span class="va">answer</span><span class="op">)</span></span>
-<span><span class="co">#&gt; R is a programming language and software environment commonly used for statistical computing and graphics...</span></span></code></pre></div>
-<hr>
-</div>
-</div>
-<div class="section level2">
-<h2 id="llm-support">LLM Support<a class="anchor" aria-label="anchor" href="#llm-support"></a>
-</h2>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">call_llm</span><span class="op">(</span></span>
-<span>  prompt <span class="op">=</span> <span class="st">"Summarize the capital of France."</span>,</span>
-<span>  provider <span class="op">=</span> <span class="st">"groq"</span>,</span>
-<span>  model <span class="op">=</span> <span class="st">"llama3-8b"</span>,</span>
-<span>  temperature <span class="op">=</span> <span class="fl">0.7</span>,</span>
-<span>  max_tokens <span class="op">=</span> <span class="fl">200</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<hr>
-</div>
-<div class="section level2">
-<h2 id="id_-related-package-chatllm">📦 Related Package: <a href="https://cran.r-project.org/package=chatLLM" class="external-link"><code>chatLLM</code></a>
-<a class="anchor" aria-label="anchor" href="#id_-related-package-chatllm"></a>
-</h2>
-<p>The <a href="https://github.com/knowusuboaky/chatLLM" class="external-link"><code>chatLLM</code></a> package (now available on CRAN 🎉) offers a modular interface for interacting with LLM providers including <strong>OpenAI</strong>, <strong>Groq</strong>, <strong>Anthropic</strong>, <strong>DeepSeek</strong>, <strong>DashScope</strong>, and <strong>GitHub Models</strong>.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"chatLLM"</span><span class="op">)</span></span></code></pre></div>
-<p>Features:</p>
-<ul>
-<li>🔄 <strong>Uniform API</strong> across providers</li>
-<li>🗣 <strong>Multi‑message context</strong> (system/user/assistant roles)</li>
-<li>🔁 <strong>Retries &amp; backoff</strong> with clear timeout handling</li>
-<li>🔈 <strong>Verbose control</strong> (<code>verbose = TRUE/FALSE</code>)</li>
-<li>⚙️ <strong>Discover models</strong> via <code>list_models()</code>
-</li>
-<li>🏗 <strong>Factory interface</strong> for repeated calls</li>
-<li>🌐 <strong>Custom endpoint</strong> override and advanced tuning</li>
-<li>🔌 Native integration with <code>RAGFlowChainR</code>
-</li>
-<li>🔐 <code>.Renviron</code>-based key management</li>
-</ul>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
-<p>MIT © <a href="mailto:kwadwo.owusuboakye@outlook.com">Kwadwo Daddy Nyame Owusu Boakye</a></p>
+<p>MIT (c) <a href="mailto:kwadwo.owusuboakye@outlook.com">Kwadwo Daddy Nyame Owusu Boakye</a></p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -267,9 +172,10 @@ GitHub (Python): <a href="https://github.com/knowusuboaky/RAGFlowChain" class="e
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
 <li><a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a></li>
+<li><a href="https://github.com/knowusuboaky/RAGFlowChainR/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/knowusuboaky/RAGFlowChainR/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://knowusuboaky.github.io/RAGFlowChainR/"><img src="https://img.shields.io/badge/docs-pkgdown-blue.svg" alt="Docs"></a></li>
 <li><a href="https://cran.r-project.org/package=RAGFlowChainR" class="external-link"><img src="https://www.r-pkg.org/badges/version/RAGFlowChainR" alt="CRAN status"></a></li>
 <li><a href="https://cranlogs.r-pkg.org/badges/grand-total/RAGFlowChainR" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/grand-total/RAGFlowChainR?color=orange" alt="Total Downloads"></a></li>
-<li><a href="https://app.codecov.io/gh/knowusuboaky/RAGFlowChainR?branch=main" class="external-link"><img src="https://codecov.io/gh/knowusuboaky/RAGFlowChainR/branch/main/graph/badge.svg" alt="Codecov test coverage"></a></li>
 <li><a href="https://github.com/knowusuboaky/RAGFlowChainR/commits/main" class="external-link"><img src="https://img.shields.io/github/last-commit/knowusuboaky/RAGFlowChainR.svg" alt="Last Commit"></a></li>
 <li><a href="https://github.com/knowusuboaky/RAGFlowChainR/issues" class="external-link"><img src="https://img.shields.io/github/issues/knowusuboaky/RAGFlowChainR.svg" alt="Issues"></a></li>
 </ul>
@@ -284,7 +190,7 @@ GitHub (Python): <a href="https://github.com/knowusuboaky/RAGFlowChain" class="e
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.2.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

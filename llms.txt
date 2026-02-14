@@ -1,0 +1,111 @@
+# RAGFlowChainR [![](reference/figures/ragopenlogo.png)](https://knowusuboaky.github.io/RAGFlowChainR)
+
+## Overview
+
+`RAGFlowChainR` is an R package for Retrieval-Augmented Generation (RAG)
+workflows with local retrieval backends (`DuckDB` and `VectrixDB`) plus
+optional web search.
+
+The README is intentionally short. Full backend workflows are documented
+in vignettes.
+
+------------------------------------------------------------------------
+
+## Installation
+
+``` r
+install.packages("RAGFlowChainR")
+```
+
+------------------------------------------------------------------------
+
+## Development version
+
+``` r
+install.packages("remotes")
+remotes::install_github("knowusuboaky/RAGFlowChainR")
+```
+
+------------------------------------------------------------------------
+
+## Backend Guides
+
+- DuckDB backend article:
+  <https://knowusuboaky.github.io/RAGFlowChainR/articles/duckdb-backend.html>
+- VectrixDB backend article:
+  <https://knowusuboaky.github.io/RAGFlowChainR/articles/vectrixdb-backend.html>
+- Function reference:
+  <https://knowusuboaky.github.io/RAGFlowChainR/reference>
+
+------------------------------------------------------------------------
+
+## Quick Start
+
+``` r
+library(RAGFlowChainR)
+
+rag <- create_rag_chain(
+  llm = function(prompt) "mock answer",
+  vector_database_directory = "my_vectors.duckdb",
+  method = "DuckDB",
+  use_web_search = FALSE
+)
+
+rag$invoke("What is RAG?")
+rag$disconnect()
+```
+
+For complete ingestion, indexing, and backend-specific setup, use the
+two backend vignettes above.
+
+------------------------------------------------------------------------
+
+## Environment Setup
+
+``` r
+Sys.setenv(TAVILY_API_KEY    = "your-tavily-api-key")
+Sys.setenv(OPENAI_API_KEY    = "your-openai-api-key")
+Sys.setenv(GROQ_API_KEY      = "your-groq-api-key")
+Sys.setenv(ANTHROPIC_API_KEY = "your-anthropic-api-key")
+```
+
+------------------------------------------------------------------------
+
+## License
+
+MIT (c) [Kwadwo Daddy Nyame Owusu
+Boakye](mailto:kwadwo.owusuboakye@outlook.com)
+
+# Package index
+
+## All functions
+
+- [`create_rag_chain`](https://knowusuboaky.github.io/RAGFlowChainR/reference/create_rag_chain.md)
+  : create_rag_chain.R Overview
+- [`embed_openai()`](https://knowusuboaky.github.io/RAGFlowChainR/reference/create_vectorstore.md)
+  [`insert_vectors()`](https://knowusuboaky.github.io/RAGFlowChainR/reference/create_vectorstore.md)
+  [`build_vector_index()`](https://knowusuboaky.github.io/RAGFlowChainR/reference/create_vectorstore.md)
+  [`search_vectors()`](https://knowusuboaky.github.io/RAGFlowChainR/reference/create_vectorstore.md)
+  : Embed text with OpenAI
+- [`fetch_data`](https://knowusuboaky.github.io/RAGFlowChainR/reference/fetch_data.md)
+  : Fetch data from local files and websites
+
+# Articles
+
+### Requires Embedding ML
+
+- [RAG with DuckDB
+  Backend](https://knowusuboaky.github.io/RAGFlowChainR/articles/duckdb-backend.md):
+- [RAG with Qdrant
+  Backend](https://knowusuboaky.github.io/RAGFlowChainR/articles/qdrant-backend.md):
+- [RAG with Pinecone
+  Backend](https://knowusuboaky.github.io/RAGFlowChainR/articles/pinecone-backend.md):
+- [RAG with Weaviate
+  Backend](https://knowusuboaky.github.io/RAGFlowChainR/articles/weaviate-backend.md):
+- [RAG with Elasticsearch
+  Backend](https://knowusuboaky.github.io/RAGFlowChainR/articles/elasticsearch-backend.md):
+
+### Doesnt Require Embedding ML
+
+- [RAG with VectrixDB
+  Backend](https://knowusuboaky.github.io/RAGFlowChainR/articles/vectrixdb-backend.md):
