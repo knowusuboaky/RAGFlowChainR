@@ -2,7 +2,7 @@
 
 * No changes yet.
 
-# RAGFlowChainR 0.1.4 (2026-02-14)
+# RAGFlowChainR 0.1.6 (2026-02-14)
 
 * Added four new retrieval backends in `create_rag_chain()`:
   * `Qdrant`
