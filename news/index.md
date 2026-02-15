@@ -4,9 +4,7 @@
 
 - No changes yet.
 
-## RAGFlowChainR 0.1.4 (2026-02-14)
-
-CRAN release: 2025-05-22
+## RAGFlowChainR 0.1.6 (2026-02-14)
 
 - Added four new retrieval backends in
   [`create_rag_chain()`](https://knowusuboaky.github.io/RAGFlowChainR/reference/create_rag_chain.md):
