@@ -4,7 +4,7 @@ template:
 
 articles:
   - title: "Requires Embedding ML"
-    navbar: "Backends"
+    navbar: "Requires Embedding ML"
     contents:
       - duckdb-backend
       - qdrant-backend
@@ -12,7 +12,7 @@ articles:
       - weaviate-backend
       - elasticsearch-backend
   - title: "Doesnt Require Embedding ML"
-    navbar: "Backends"
+    navbar: "Doesnt Require Embedding ML"
     contents:
       - vectrixdb-backend
 
