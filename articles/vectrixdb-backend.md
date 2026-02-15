@@ -13,7 +13,15 @@ library(RAGFlowChainR)
 library(VectrixDB)
 ```
 
-## 2) Create a VectrixDB collection and add documents
+## 2) Optional API key for dashboard writes
+
+``` r
+# Optional: protects write endpoints when using the dashboard/server API.
+# Keep this key private and load from your environment in real projects.
+Sys.setenv(VECTRIX_API_KEY = "your-vectrix-api-key")
+```
+
+## 3) Create a VectrixDB collection and add documents
 
 ``` r
 store_path <- tempfile("vectrix_store_")
@@ -37,7 +45,22 @@ db$add(
 db$close()
 ```
 
-## 3) Create a RAG chain with method = “VectrixDB”
+## 4) Optional: launch dashboard on port 7377
+
+``` r
+# Starts the dashboard at:
+#   http://127.0.0.1:7377/dashboard
+# Stop with Esc or by interrupting the R session.
+VectrixDB::vdb_dashboard(
+  data_path = store_path,
+  host = "127.0.0.1",
+  port = 7377,
+  api_key = Sys.getenv("VECTRIX_API_KEY"),
+  launch.browser = TRUE
+)
+```
+
+## 5) Create a RAG chain with method = “VectrixDB”
 
 ``` r
 mock_llm <- function(prompt) {
@@ -52,7 +75,7 @@ rag_chain <- create_rag_chain(
 )
 ```
 
-## 4) Query the chain
+## 6) Query the chain
 
 ``` r
 result <- rag_chain$invoke("What is VectrixDB?")
@@ -61,7 +84,7 @@ result$answer
 result$documents
 ```
 
-## 5) Cleanup
+## 7) Cleanup
 
 ``` r
 rag_chain$disconnect()
@@ -76,3 +99,7 @@ unlink(store_path, recursive = TRUE)
   raises a clear error with installation steps.
 - `vector_database_directory` can point to a Vectrix root directory,
   collection directory, or collection name.
+- `VectrixDB::vdb_dashboard()` serves the dashboard at port `7377` by
+  default.
+- `api_key` is optional but recommended for dashboard/API write
+  protection.
