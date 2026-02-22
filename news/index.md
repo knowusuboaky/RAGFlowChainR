@@ -6,6 +6,8 @@
 
 ## RAGFlowChainR 0.1.6 (2026-02-14)
 
+CRAN release: 2026-02-22
+
 - Added four new retrieval backends in
   [`create_rag_chain()`](https://knowusuboaky.github.io/RAGFlowChainR/reference/create_rag_chain.md):
   - `Qdrant`

@@ -99,7 +99,7 @@ unlink(store_path, recursive = TRUE)
   raises a clear error with installation steps.
 - `vector_database_directory` can point to a Vectrix root directory,
   collection directory, or collection name.
-- `VectrixDB::vdb_dashboard()` serves the dashboard at port `7377` by
-  default.
+- [`VectrixDB::vdb_dashboard()`](https://knowusuboaky.github.io/vectrixdb-r/reference/vdb_dashboard.html)
+  serves the dashboard at port `7377` by default.
 - `api_key` is optional but recommended for dashboard/API write
   protection.

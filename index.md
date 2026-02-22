@@ -1,4 +1,4 @@
-# RAGFlowChainR [![](reference/figures/ragopenlogo.png)](https://knowusuboaky.github.io/RAGFlowChainR)
+# RAGFlowChainR [![](reference/figures/ragopenlogo.png)](https://knowusuboaky.github.io/RAGFlowChainR/)
 
 ## Overview
 
@@ -35,7 +35,7 @@ remotes::install_github("knowusuboaky/RAGFlowChainR")
 - VectrixDB backend article:
   <https://knowusuboaky.github.io/RAGFlowChainR/articles/vectrixdb-backend.html>
 - Function reference:
-  <https://knowusuboaky.github.io/RAGFlowChainR/reference>
+  <https://knowusuboaky.github.io/RAGFlowChainR/reference/>
 
 ------------------------------------------------------------------------
 
