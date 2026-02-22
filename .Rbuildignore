@@ -16,3 +16,5 @@
 ^LICENSE\.md$
 ^vignettes$
 ^vignettes/.*
+^tests/testthat/test-data$
+^tests/testthat/test-data/.*

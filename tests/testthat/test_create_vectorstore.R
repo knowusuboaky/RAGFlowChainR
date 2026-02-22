@@ -70,6 +70,9 @@ test_that("insert_vectors chunks long text silently", {
 })
 
 test_that("build_vector_index succeeds silently (vss/fts)", {
+  # Skip on CRAN: DuckDB FTS extension install can segfault on restricted environments
+  skip_on_cran()
+
   # Check whether FTS can load
   has_fts <- TRUE
   tmp <- dbConnect(duckdb::duckdb(), ":memory:")
